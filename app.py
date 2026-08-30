@@ -202,59 +202,52 @@ c_phone_diff = st.session_state.get("phone_diff_count", 0)
 c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
+st.markdown("### 📌 اضغط على أي بط أدناه لفلترة الجدول فوراً:")
 
-# عرض البطاقات الإحصائية الملونة بشكل نظيف وثابت 100%
+# استخدام أزرار ستريمليت الأصلية الحقيقية (فعالة 100%) موزعة على 6 أعمدة
+cols = st.columns(6)
+
+with cols[0]:
+  if st.button(
+      f"🏠 العنوان\n({c_address_diff})",
+      use_container_width=True,
+      key="b_addr",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
+
+with cols[1]:
+  if st.button(
+      f"📞 الهاتف\n({c_phone_diff})", use_container_width=True, key="b_phone"
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
+
+with cols[2]:
+  if st.button(
+      f"🔑 الكود\n({c_code_diff})", use_container_width=True, key="b_code"
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
+
+with cols[3]:
+  if st.button(f"⚠️ الإجمالي\n({c_diff})", use_container_width=True, key="b_diff"):
+    st.session_state["active_filter"] = "الكل"
+
+with cols[4]:
+  if st.button(f"📁 المقارنة\n({c_new})", use_container_width=True, key="b_new"):
+    st.session_state["active_filter"] = "المقارنة"
+
+with cols[5]:
+  if st.button(
+      f"📦 الرئيسي\n({c_main})", use_container_width=True, key="b_main"
+  ):
+    st.session_state["active_filter"] = "الرئيسي"
+
 st.markdown(
-    f"""
-    <div style="display: flex; gap: 10px; width: 100%; direction: rtl; margin-bottom: 20px;">
-        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #fb7185, #e11d48); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">🏠 فروقات العنوان</div>
-            <div style="font-size: 20px; font-weight: 900;">{c_address_diff}</div>
-        </div>
-        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #f472b6, #db2777); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📞 فروقات الهاتف</div>
-            <div style="font-size: 20px; font-weight: 900;">{c_phone_diff}</div>
-        </div>
-        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">🔑 فروقات الكود</div>
-            <div style="font-size: 20px; font-weight: 900;">{c_code_diff}</div>
-        </div>
-        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #fb923c, #ea580c); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">⚠️ الإجمالي</div>
-            <div style="font-size: 20px; font-weight: 900;">{c_diff}</div>
-        </div>
-        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #38bdf8, #0284c7); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📁 المقارنة</div>
-            <div style="font-size: 20px; font-weight: 900;">{c_new}</div>
-        </div>
-        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #34d399, #059669); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
-            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📦 الرئيسي</div>
-            <div style="font-size: 20px; font-weight: 900;">{c_main}</div>
-        </div>
-    </div>
-    """,
+    f"<div style='text-align: center; margin: 10px 0; font-weight: bold;"
+    f" color: #4F46E5;'>الفلتر النشط حالياً: <span style='background: #e0e7ff;"
+    f" padding: 3px 12px; border-radius: 6px;'>"
+    f"{st.session_state['active_filter']}</span></div>",
     unsafe_allow_html=True,
 )
-
-# قائمة منسدلة مرتبطة بالجدول ومستقرة تماماً ولا تسبب أي حذف للملفات
-filter_options = [
-    "الكل",
-    "فروقات العنوان",
-    "فروقات الهاتف",
-    "فروقات الكود",
-    "الرئيسي",
-    "المقارنة",
-]
-current_index = (
-    filter_options.index(st.session_state["active_filter"])
-    if st.session_state["active_filter"] in filter_options
-    else 0
-)
-
-selected_filter = st.selectbox(
-    "🔍 اختر فلتر الجدول:", filter_options, index=current_index
-)
-st.session_state["active_filter"] = selected_filter
 
 st.markdown("---")
 st.subheader(
@@ -266,24 +259,25 @@ if (
     and not st.session_state["diff_df"].empty
 ):
   df_display = st.session_state["diff_df"].copy()
+  current_filter = st.session_state["active_filter"]
 
-  if selected_filter == "فروقات الكود":
+  if current_filter == "فروقات الكود":
     df_display = df_display[
         df_display["الحالة"].str.contains("فقط", na=False)
     ]
-  elif selected_filter == "فروقات الهاتف":
+  elif current_filter == "فروقات الهاتف":
     df_display = df_display[
         df_display["الحالة"].str.contains("الهاتف|هاتف وعنوان", na=False)
     ]
-  elif selected_filter == "فروقات العنوان":
+  elif current_filter == "فروقات العنوان":
     df_display = df_display[
         df_display["الحالة"].str.contains("العنوان|هاتف وعنوان", na=False)
     ]
-  elif selected_filter == "الرئيسي":
+  elif current_filter == "الرئيسي":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في الرئيسي فقط", na=False)
     ]
-  elif selected_filter == "المقارنة":
+  elif current_filter == "المقارنة":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في المقارنة فقط", na=False)
     ]
