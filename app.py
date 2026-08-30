@@ -10,6 +10,27 @@ if "active_filter" not in st.session_state:
 
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
+
+  # تنسيق خاص لزر المسح (خلفية حمراء وكتابة بيضاء)
+  st.markdown(
+      """
+        <style>
+        div.stButton > button[kind="secondary"] {
+            background-color: #ef4444 !important;
+            color: white !important;
+        }
+        div.stButton > button[kind="secondary"] p {
+            color: white !important;
+        }
+        div.stButton > button[kind="secondary"]:hover {
+            background-color: #dc2626 !important;
+            color: white !important;
+        }
+        </style>
+        """,
+      unsafe_allow_html=True,
+  )
+
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
     for key in list(st.session_state.keys()):
       del st.session_state[key]
@@ -213,7 +234,7 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تعديل حجم الخط حصراً إلى 16px مع الحفاظ على التصميم الأصلي
+# تكبير حجم خط المربعات حصراً إلى 16px مع الحفاظ على التصميم الأصلي
 st.markdown(
     """
     <style>
