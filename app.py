@@ -338,7 +338,10 @@ if not diff_df.empty:
 
   if current_filter == "فروقات الكود":
     df_display = df_display[
-        df_display["الحالة"].str.contains("فقط", na=False)
+        df_display["الحالة"].str.contains(
+            "موجود في الرئيسي فقط|الكود غير موجود بقاعدة البيانات السابقة",
+            na=False,
+        )
     ]
   elif current_filter == "فروقات الهاتف":
     df_display = df_display[
