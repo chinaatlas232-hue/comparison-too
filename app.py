@@ -9,7 +9,6 @@ st.set_page_config(
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
 
-  # تخصيص لون زر المسح للأحمر
   st.markdown(
       """
         <style>
@@ -36,7 +35,7 @@ with st.sidebar:
 
 st.markdown(
     """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الأكواد البسيطة</h2>
+    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الأكواد والهواتف البسيطة</h2>
     """,
     unsafe_allow_html=True,
 )
@@ -74,8 +73,28 @@ if uploaded_main and uploaded_new:
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
     default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
+    # اختيار عمود الكود
     id_col = st.selectbox(
         "🔑 اختر عمود الكود المشترك حصراً:", common_cols, index=default_id_idx
+    )
+
+    # اختيار عمود الهاتف ببحث ذكي افتراضي
+    default_phone = next(
+        (
+            c
+            for c in common_cols
+            if any(k in c.lower() for k in ["هاتف", "phone", "جوال", "رقم"])
+        ),
+        common_cols[1] if len(common_cols) > 1 else common_cols[0],
+    )
+    default_phone_idx = (
+        common_cols.index(default_phone)
+        if default_phone in common_cols
+        else 0
+    )
+
+    phone_col = st.selectbox(
+        "📞 اختر عمود الهاتف المشترك:", common_cols, index=default_phone_idx
     )
 
     def clean_series(series):
@@ -87,6 +106,7 @@ if uploaded_main and uploaded_new:
           .replace("nan", "")
       )
 
+    # تحضير البيانات للأكواد
     main_ids = clean_series(df_main[id_col])
     new_ids = clean_series(df_new[id_col])
 
@@ -106,6 +126,34 @@ if uploaded_main and uploaded_new:
     else:
       st.session_state["diff_df"] = pd.DataFrame(columns=["الكود المختلف"])
 
+    # مقارنة أقم الهواتف للأكواد المشتركة
+    df_m_sub = df_main[[id_col, phone_col]].copy()
+    df_n_sub = df_new[[id_col, phone_col]].copy()
+
+    df_m_sub.columns = ["id", "phone"]
+    df_n_sub.columns = ["id", "phone"]
+
+    df_m_sub["id"] = clean_series(df_m_sub["id"])
+    df_n_sub["id"] = clean_series(df_n_sub["id"])
+    df_m_sub["phone"] = clean_series(df_m_sub["phone"])
+    df_n_sub["phone"] = clean_series(df_n_sub["phone"])
+
+    # دمج الملفين بناءً على الكود المشترك لفحص اختلاف الهاتف
+    merged_phones = pd.merge(
+        df_m_sub, df_n_sub, on="id", suffixes=("_main", "_new")
+    )
+    phone_diffs = merged_phones[
+        merged_phones["phone_main"] != merged_phones["phone_new"]
+    ].copy()
+
+    if not phone_diffs.empty:
+      phone_diffs.columns = ["الكود", "هاتف الملف الرئيسي", "هاتف ملف المقارنة"]
+      st.session_state["phone_diff_df"] = phone_diffs
+    else:
+      st.session_state["phone_diff_df"] = pd.DataFrame(
+          columns=["الكود", "هاتف الملف الرئيسي", "هاتف ملف المقارنة"]
+      )
+
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
@@ -117,9 +165,9 @@ st.markdown("---")
 
 # تحديد لون المربع الثالث بناءً على وجود فرق أو عدمه
 if c_diff > 0:
-  diff_bg = "linear-gradient(135deg, #ef4444, #b91c1c)"  # أحمر عند وجود فرق
+  diff_bg = "linear-gradient(135deg, #ef4444, #b91c1c)"
 else:
-  diff_bg = "linear-gradient(135deg, #4b5563, #1f2937)"  # رصاصي غامق إذا لم يوجد فرق
+  diff_bg = "linear-gradient(135deg, #4b5563, #1f2937)"
 
 # تصميم المربعات الثلاثة بالألوان المطلوبة
 st.markdown(
@@ -160,14 +208,14 @@ with col3:
   st.markdown(
       f"""
         <div class="metric-card-3">
-            <div class="metric-title">⚠️ الفرق الإجمالي</div>
+            <div class="metric-title">⚠️ الفرق الإجمالي للأكواد</div>
             <div class="metric-value">{c_diff}</div>
         </div>
         """,
       unsafe_allow_html=True,
   )
 
-# عرض جدول الفرق البسيط في أسفل الشاشة
+# جدول الأكواد المختلفة
 st.markdown("---")
 st.subheader("📋 جدول الأكواد المختلفة (النتيجة):")
 if (
@@ -178,4 +226,22 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("الرجاء رفع الملفات لعرض النتائج هنا.")
+  st.info("لا توجد اختلافات في الأكواد أو لم يتم رفع الملفات بعد.")
+
+# جدول اختلافات أرقام الهواتف الجديد
+st.markdown("---")
+st.subheader("📞 جدول اختلاف أقام الهواتف (لنفس الأكواد):")
+if (
+    "phone_diff_df" in st.session_state
+    and not st.session_state["phone_diff_df"].empty
+):
+  st.dataframe(
+      st.session_state["phone_diff_df"],
+      use_container_width=True,
+      hide_index=True,
+  )
+else:
+  st.info(
+      "لا توجد اختلافات في أرقام الهواتف بين الملفين أو لم تقم باختيار العمود"
+      " بعد."
+  )
