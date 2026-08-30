@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تقليل الهوامش الفارغة وتعديل لون القائمة الجانبية إلى رمادي متوسط الشدة (72%)
+# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، وزر تحميل الإكسل الأخضر الفاتح
 st.markdown(
     """
     <style>
@@ -28,6 +28,20 @@ st.markdown(
     div.stButton > button[kind="secondary"]:hover {
         background-color: #dc2626 !important;
         color: white !important;
+    }
+    /* تخصيص زر تحميل الإكسل باللون الأخضر الفاتح */
+    div.stDownloadButton > button {
+        background-color: rgba(34, 197, 94, 0.2) !important;
+        color: #15803d !important;
+        border: 1px solid rgba(34, 197, 94, 0.4) !important;
+        font-weight: bold !important;
+    }
+    div.stDownloadButton > button:hover {
+        background-color: rgba(34, 197, 94, 0.35) !important;
+        color: #166534 !important;
+    }
+    div.stDownloadButton > button p {
+        color: #15803d !important;
     }
     </style>
     """,
