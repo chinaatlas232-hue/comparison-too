@@ -5,6 +5,14 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
+# زر المسح اليدوي في القائمة الجانبية
+with st.sidebar:
+  st.markdown("### ⚙️ إعدادات التحكم")
+  if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
+    for key in list(st.session_state.keys()):
+      del st.session_state[key]
+    st.rerun()
+
 st.markdown(
     """
     <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الأكواد البسيطة</h2>
@@ -38,7 +46,7 @@ if uploaded_main and uploaded_new:
 
     st.markdown("---")
 
-    # قائمة واحدة لاختيار عمود الكود المشترك
+    # استخراج الأعمدة المشتركة واختيار عمود الكود
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
     default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
@@ -56,24 +64,19 @@ if uploaded_main and uploaded_new:
             .replace("nan", "")
         )
 
-      # استخراج وتنظيف الأكواد من الملفين حصراً
       main_ids = set(clean_series(df_main[id_col]))
       new_ids = set(clean_series(df_new[id_col]))
 
-      # إزالة القيم الفارغة إن وجدت
       main_ids.discard("")
       new_ids.discard("")
 
       count_main = len(main_ids)
       count_new = len(new_ids)
-
-      # حساب الفرق (مثلاً عدد الأكواد المختلفة أو الغير متطابقة)
-      # يمكنك اختيار الفرق المطلق أو الأكواد الموجودة في الرئيسي وليست في الجديد أو العكس
       diff_count = len(main_ids.symmetric_difference(new_ids))
 
       st.markdown("---")
 
-      # عرض 3 مربعات واضحة فقط بدون أي نتائج تفصيلية بالأسفل
+      # عرض المربعات الثلاثة فقط بدقة
       m1, m2, m3 = st.columns(3)
       m1.metric("📦 عدد الكودات (الملف الرئيسي)", count_main)
       m2.metric("📁 عدد الكودات (ملف المقارنة)", count_new)
