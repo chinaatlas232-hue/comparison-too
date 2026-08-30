@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import streamlit as st
 
@@ -5,13 +6,12 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تهيئة الذاكرة المؤقتة لضمان بقاء الملفات والنتائج
-if "saved_main" not in st.session_state:
-  st.session_state["saved_main"] = None
-if "saved_new" not in st.session_state:
-  st.session_state["saved_new"] = None
-if "active_filter" not in st.session_state:
-  st.session_state["active_filter"] = "الكل"
+# إنشاء مجلد لحفظ الملفات على السيرفر لضمان عدم ضياعها
+UPLOAD_DIR = "saved_files"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
+new_file_path = os.path.join(UPLOAD_DIR, "new_file.xlsx")
 
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -37,6 +37,10 @@ with st.sidebar:
   )
 
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
+    if os.path.exists(main_file_path):
+      os.remove(main_file_path)
+    if os.path.exists(new_file_path):
+      os.remove(new_file_path)
     for key in list(st.session_state.keys()):
       del st.session_state[key]
     st.rerun()
@@ -49,6 +53,7 @@ st.markdown(
 )
 
 col1, col2 = st.columns(2)
+
 with col1:
   uploaded_main = st.file_uploader(
       "📁 ارفع الملف الرئيسي (Master File)",
@@ -56,7 +61,8 @@ with col1:
       key="main_file",
   )
   if uploaded_main is not None:
-    st.session_state["saved_main"] = uploaded_main
+    with open(main_file_path, "wb") as f:
+      f.write(uploaded_main.getbuffer())
 
 with col2:
   uploaded_new = st.file_uploader(
@@ -65,11 +71,23 @@ with col2:
       key="new_file",
   )
   if uploaded_new is not None:
-    st.session_state["saved_new"] = uploaded_new
+    with open(new_file_path, "wb") as f:
+      f.write(uploaded_new.getbuffer())
 
-# اعتماد الملفات المحفوظة في الجلسة لضمان ثباتها
-active_main = st.session_state["saved_main"]
-active_new = st.session_state["saved_new"]
+# التحقق من وجود الملفات المحفوظة على السيرفر
+active_main = (
+    main_file_path
+    if os.path.exists(main_file_path)
+    else (uploaded_main if uploaded_main else None)
+)
+active_new = (
+    new_file_path
+    if os.path.exists(new_file_path)
+    else (uploaded_new if uploaded_new else None)
+)
+
+if "active_filter" not in st.session_state:
+  st.session_state["active_filter"] = "الكل"
 
 
 @st.cache_data
@@ -92,7 +110,9 @@ c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_address_diff = (
 )
 diff_df = pd.DataFrame()
 
-if active_main is not None and active_new is not None:
+if (
+    os.path.exists(main_file_path) and os.path.exists(new_file_path)
+) or (active_main and active_new):
   try:
     df_main, df_new = load_data(active_main, active_new)
 
