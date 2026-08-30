@@ -37,46 +37,50 @@ if uploaded_main and uploaded_new:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     st.markdown("---")
+    st.subheader("⚙️ تحديد الأعمدة بدقة للمقارنة الصحيحة:")
 
-    # فلتر واحد فقط لاختيار العمود المشترك (الكود)
+    # قوائم واضحة لاختيار الأعمدة لضمان عدم حدوث خطأ في المطابقة
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
     default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
-    id_col = st.selectbox(
-        "🔑 اختر العمود المشترك (الكود) فقط:", common_cols, index=default_id_idx
-    )
+    col_a, col_b, col_c = st.columns(3)
+    with col_a:
+      id_col = st.selectbox(
+          "🔑 عمود الكود المشترك:", common_cols, index=default_id_idx
+      )
+    with col_b:
+      phone_col = st.selectbox("📞 عمود رقم الهاتف:", list(df_main.columns))
+    with col_c:
+      addr_col = st.selectbox("📍 عمود عنوان استلام البضاعة:", list(df_main.columns))
 
     if st.button("🚀 ابدأ المقارنة والتحليل الفوري", use_container_width=True):
-      # البحث الذكي والافتراضي عن أعمدة الهاتف والعنوان في الملفين
-      def find_col(df, keywords):
-        for col in df.columns:
-          for kw in keywords:
-            if kw in str(col).lower():
-              return col
-        return df.columns[1]  # افتراضي إذا لم يجد
-
-      phone_main = find_col(df_main, ["هاتف", "phone", "جوال"])
-      addr_main = find_col(
-          df_main, ["عنوان", "address", "استلام", "البضاعة", "مكان"]
-      )
-
-      phone_new = (
-          phone_main if phone_main in df_new.columns else df_new.columns[1]
-      )
-      addr_new = addr_main if addr_main in df_new.columns else df_new.columns[2]
-
-      m_df = df_main[[id_col, phone_main, addr_main]].copy()
-      n_df = df_new[[id_col, phone_new, addr_new]].copy()
+      # سحب الأعمدة بدقة من الملفين
+      m_df = df_main[[id_col, phone_col, addr_col]].copy()
+      
+      # محاولة مطابقة نفس أسماء الأعمدة في الملف الجديد إن وجدت، وإلا استخدام نفس الأسماء
+      n_phone = phone_col if phone_col in df_new.columns else df_new.columns[1]
+      n_addr = addr_col if addr_col in df_new.columns else df_new.columns[2]
+      n_df = df_new[[id_col, n_phone, n_addr]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
 
-      m_df["id"] = m_df["id"].astype(str).str.strip()
-      n_df["id"] = n_df["id"].astype(str).str.strip()
-      m_df["phone"] = m_df["phone"].astype(str).str.strip().fillna("")
-      n_df["phone"] = n_df["phone"].astype(str).str.strip().fillna("")
-      m_df["address"] = m_df["address"].astype(str).str.strip().fillna("")
-      n_df["address"] = n_df["address"].astype(str).str.strip().fillna("")
+      # تنظيف دقيق للنصوص والأرقام لمنع فروق التنسيق الوهمية (مثل .0 في الأرقام وفراغات النصوص)
+      def clean_series(series):
+        return (
+            series.astype(str)
+            .str.replace(r"\.0$", "", regex=True)
+            .str.strip()
+            .fillna("")
+            .replace("nan", "")
+        )
+
+      m_df["id"] = clean_series(m_df["id"])
+      n_df["id"] = clean_series(n_df["id"])
+      m_df["phone"] = clean_series(m_df["phone"])
+      n_df["phone"] = clean_series(n_df["phone"])
+      m_df["address"] = clean_series(m_df["address"])
+      n_df["address"] = clean_series(n_df["address"])
 
       merged = pd.merge(
           m_df, n_df, on="id", how="inner", suffixes=("_main", "_new")
@@ -89,12 +93,12 @@ if uploaded_main and uploaded_new:
       diff_df = merged[merged["phone_diff"] | merged["address_diff"]].copy()
       matched_count = total_common - len(diff_df)
 
-      st.success("تمت المقارنة بنجاح!")
+      st.success("تمت المقارنة بنجاح وبدقة متناهية!")
 
       col1, col2, col3 = st.columns(3)
       col1.metric("📦 إجمالي السجلات المشتركة", total_common)
       col2.metric("✅ السجلات المتطابقة تماماً", matched_count)
-      col3.metric("⚠️ السجلات التي بها اختلافات", len(diff_df))
+      col3.metric("⚠️ السجلات التي بها اختلافات حقيقية", len(diff_df))
 
       st.markdown("---")
       st.subheader("🔍 جدول الاختلافات (مع شريط بحث واحد):")
