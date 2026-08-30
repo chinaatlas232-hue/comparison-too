@@ -7,7 +7,7 @@ st.set_page_config(
 
 st.markdown(
     """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة بيانات العناوين وأرقام الهواتف الذكية</h2>
+    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة الاستعلام والمقارنة السريعة</h2>
     """,
     unsafe_allow_html=True,
 )
@@ -43,11 +43,10 @@ if uploaded_main and uploaded_new:
     default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
     id_col = st.selectbox(
-        "🔑 اختر عمود الكود المشترك فقط:", common_cols, index=default_id_idx
+        "🔑 اختر عمود الكود المشترك:", common_cols, index=default_id_idx
     )
 
-    if st.button("🚀 ابدأ المقارنة والتحليل الفوري", use_container_width=True):
-      # البحث التلقائي الذكي عن أعمدة الهاتف والعنوان دون أي قوائم إضافية
+    if st.button("🚀 تجهيز البيانات للبحث السريع", use_container_width=True):
       def find_best_col(df, keywords):
         for col in df.columns:
           for kw in keywords:
@@ -87,59 +86,71 @@ if uploaded_main and uploaded_new:
       m_df["address"] = clean_series(m_df["address"])
       n_df["address"] = clean_series(n_df["address"])
 
-      merged = pd.merge(
+      # دمج الملفات وحفظها في الذاكرة المؤقتة للاستعلام الفوري
+      st.session_state["merged_data"] = pd.merge(
           m_df, n_df, on="id", how="inner", suffixes=("_main", "_new")
       )
-      total_common = len(merged)
+      st.success(
+          "تم تجهيز البيانات بنجاح! يمكنك الآن البحث عن أي كود أو رقم هاتف أدناه."
+      )
 
-      merged["phone_diff"] = merged["phone_main"] != merged["phone_new"]
-      merged["address_diff"] = merged["address_main"] != merged["address_new"]
-
-      diff_df = merged[merged["phone_diff"] | merged["address_diff"]].copy()
-      matched_count = total_common - len(diff_df)
-
-      st.success("تمت المقارنة بنجاح!")
-
-      col1, col2, col3 = st.columns(3)
-      col1.metric("📦 إجمالي السجلات المشتركة", total_common)
-      col2.metric("✅ السجلات المتطابقة تماماً", matched_count)
-      col3.metric("⚠️ السجلات التي بها اختلافات", len(diff_df))
-
+    # صندوق الاستعلام الفوري (البحث عن عنصر واحد وعرض نتيجته حصرياً)
+    if "merged_data" in st.session_state:
       st.markdown("---")
-      st.subheader("🔍 جدول الاختلافات (مع شريط بحث واحد):")
+      query = st.text_input(
+          "🔍 أدخل الكود أو رقم الهاتف للبحث الفوري عنه:",
+          placeholder="مثال: E824 أو رقم الهاتف...",
+      )
 
-      if len(diff_df) > 0:
-        display_diff = diff_df[
-            ["id", "phone_main", "phone_new", "address_main", "address_new"]
-        ].copy()
-        display_diff.columns = [
-            "الكود المشترك",
-            "الهاتف (الرئيسي)",
-            "الهاتف (الجديد)",
-            "العنوان (الرئيسي)",
-            "العنوان (الجديد)",
+      if query:
+        data = st.session_state["merged_data"]
+        # البحث في الكود أو الهاتف
+        result = data[
+            data["id"].str.contains(query, case=False, na=False)
+            | data["phone_main"].str.contains(query, case=False, na=False)
+            | data["phone_new"].str.contains(query, case=False, na=False)
         ]
 
-        search_query = st.text_input(
-            "🔎 ابحث هنا (بالكود، الهاتف، أو العنوان):"
-        )
-        if search_query:
-          mask = display_diff.astype(str).apply(
-              lambda x: x.str.contains(search_query, case=False, na=False)
-          ).any(axis=1)
-          display_diff = display_diff[mask]
+        if not result.empty:
+          for _, row in result.iterrows():
+            st.info(f"📌 **نتيجة البحث للكود:** {row['id']}")
 
-        st.dataframe(display_diff, use_container_width=True)
+            col_p1, col_p2 = st.columns(2)
+            with col_p1:
+              st.markdown(
+                  "**📞 الهاتف (الرئيسي):** "
+                  f"`{row['phone_main'] or 'فارغ'}`"
+              )
+            with col_p2:
+              phone_match_color = (
+                  "🟢 متطابق"
+                  if row["phone_main"] == row["phone_new"]
+                  else "🔴 يوجد اختلاف"
+              )
+              st.markdown(
+                  "**📞 الهاتف (الجديد):** "
+                  f"`{row['phone_new'] or 'فارغ'}` ({phone_match_color})"
+              )
 
-        csv = display_diff.to_csv(index=False).encode("utf-8-sig")
-        st.download_button(
-            label="📥 تحميل تقرير الاختلافات كملف CSV",
-            data=csv,
-            file_name="differences_report.csv",
-            mime="text/csv",
-        )
-      else:
-        st.info("لا توجد أي اختلافات بين الملفين، جميع البيانات مطابقة تماماً!")
+            col_a1, col_a2 = st.columns(2)
+            with col_a1:
+              st.markdown(
+                  "**📍 العنوان (الرئيسي):** "
+                  f"{row['address_main'] or 'فارغ'}"
+              )
+            with col_a2:
+              addr_match_color = (
+                  "🟢 متطابق"
+                  if row["address_main"] == row["address_new"]
+                  else "🔴 يوجد اختلاف"
+              )
+              st.markdown(
+                  "**📍 العنوان (الجديد):** "
+                  f"{row['address_new'] or 'فارغ'} ({addr_match_color})"
+              )
+            st.markdown("---")
+        else:
+          st.warning("⚠️ لم يتم العثور على أي مطابقة بهذا الكود أو رقم الهاتف.")
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
