@@ -172,7 +172,6 @@ if uploaded_main and uploaded_new:
           if has_addr_diff:
             address_diff_count += 1
 
-          # تصنيف حالات الاختلاف بدقة لربطها بأزرار الفلترة
           if has_phone_diff and has_addr_diff:
             status_label = "اختلاف هاتف وعنوان"
           elif has_phone_diff:
@@ -245,67 +244,61 @@ if c_diff > 0:
 else:
   diff_bg = "linear-gradient(135deg, #4b5563, #1f2937)"
 
+# حقن أكواد CSS لتلوين كل زر (مربع) بتدرجه الخاص وتثبيت مظهر احترافي
 st.markdown(
     f"""
     <style>
-    .metric-title {{ font-size: 13px; font-weight: bold; margin-bottom: 6px; }}
-    .metric-value {{ font-size: 22px; font-weight: bold; }}
+    div.stButton > button[data-baseweb="button"] {{
+        width: 100%;
+        border-radius: 12px;
+        color: white;
+        font-weight: bold;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 15px 10px;
+    }}
+    /* تلوين كل زر حسب ترتيبه */
+    div[data-testid="column"]:nth-of-type(1) button {{ background: linear-gradient(135deg, #10b981, #047857) !important; }}
+    div[data-testid="column"]:nth-of-type(2) button {{ background: linear-gradient(135deg, #f97316, #c2410c) !important; }}
+    div[data-testid="column"]:nth-of-type(3) button {{ background: {diff_bg} !important; }}
+    div[data-testid="column"]:nth-of-type(4) button {{ background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important; }}
+    div[data-testid="column"]:nth-of-type(5) button {{ background: linear-gradient(135deg, #f472b6, #db2777) !important; }}
+    div[data-testid="column"]:nth-of-type(6) button {{ background: linear-gradient(135deg, #0ea5e9, #0284c7) !important; }}
+    
+    div.stButton > button:hover {{
+        opacity: 0.9;
+        transform: translateY(-2px);
+        transition: all 0.2s ease;
+    }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# التهيئة الافتراضية لفلتر الجدول
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# تصميم المربعات كأزرار تفاعلية لتغيير الفلتر
 col1, col2, col3, col4, col5, col6 = st.columns(6)
 
 with col1:
-  if st.button(
-      f"📦 الرئيسي\n\n{c_main}",
-      use_container_width=True,
-      key="btn_main",
-  ):
+  if st.button(f"📦 الرئيسي\n\n{c_main}", key="btn_main"):
     st.session_state["active_filter"] = "الكل"
 with col2:
-  if st.button(
-      f"📁 المقارنة\n\n{c_new}",
-      use_container_width=True,
-      key="btn_new",
-  ):
+  if st.button(f"📁 المقارنة\n\n{c_new}", key="btn_new"):
     st.session_state["active_filter"] = "الكل"
 with col3:
-  if st.button(
-      f"⚠️ الإجمالي\n\n{c_diff}",
-      use_container_width=True,
-      key="btn_total",
-  ):
+  if st.button(f"⚠️ الإجمالي\n\n{c_diff}", key="btn_total"):
     st.session_state["active_filter"] = "الكل"
 with col4:
-  if st.button(
-      f"🔑 فروقات الكود\n\n{c_code_diff}",
-      use_container_width=True,
-      key="btn_code",
-  ):
+  if st.button(f"🔑 فروقات الكود\n\n{c_code_diff}", key="btn_code"):
     st.session_state["active_filter"] = "فروقات الكود"
 with col5:
-  if st.button(
-      f"📞 فروقات الهاتف\n\n{c_phone_diff}",
-      use_container_width=True,
-      key="btn_phone",
-  ):
+  if st.button(f"📞 فروقات الهاتف\n\n{c_phone_diff}", key="btn_phone"):
     st.session_state["active_filter"] = "فروقات الهاتف"
 with col6:
-  if st.button(
-      f"🏠 فروقات العنوان\n\n{c_address_diff}",
-      use_container_width=True,
-      key="btn_address",
-  ):
+  if st.button(f"🏠 فروقات العنوان\n\n{c_address_diff}", key="btn_address"):
     st.session_state["active_filter"] = "فروقات العنوان"
 
-# زر لإلغاء الفلترة وعرض الكل في حال رغب المستخدم بذلك
 if st.session_state["active_filter"] != "الكل":
   if st.button(
       f"🔄 إيقاف الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
@@ -326,7 +319,6 @@ if (
 ):
   df_display = st.session_state["diff_df"].copy()
 
-  # تطبيق الفلتر بناءً على المربع الذي تم الضغط عليه
   current_filter = st.session_state["active_filter"]
   if current_filter == "فروقات الكود":
     df_display = df_display[
