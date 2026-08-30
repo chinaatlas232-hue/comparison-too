@@ -5,6 +5,10 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
+# تهيئة الحالة الافتراضية للفلتر
+if "active_filter" not in st.session_state:
+  st.session_state["active_filter"] = "الكل"
+
 # زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -207,106 +211,87 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
 
-if "active_filter" not in st.session_state:
-  st.session_state["active_filter"] = "الكل"
-
-# استخدام نظام قراءة الحالات عبر query params بطريقة آمنة لا تفتح متصفحات خارجية بل تحدث الصفحة الحالية
-query_params = st.query_params
-if "filter" in query_params:
-  f_val = query_params["filter"]
-  if f_val == "code":
-    st.session_state["active_filter"] = "فروقات الكود"
-  elif f_val == "phone":
-    st.session_state["active_filter"] = "فروقات الهاتف"
-  elif f_val == "address":
-    st.session_state["active_filter"] = "فروقات العنوان"
-  elif f_val == "diff":
-    st.session_state["active_filter"] = "الكل"
-  elif f_val == "new":
-    st.session_state["active_filter"] = "المقارنة"
-  elif f_val == "main":
-    st.session_state["active_filter"] = "الرئيسي"
-
-# تصميم عصري بالكامل باستخدام بطاقات HTML تفاعلية ملونة ومتدرجة وبداخلها البيانات والأرقام بوضوح تام
+# تصميم أزرار تفاعلية حقيقية عبر Streamlit Columns لتغيير الفلتر بلحظتها بدون فقدان الملفات
 st.markdown(
-    f"""
+    """
     <style>
-    .cards-container {{
-        display: flex;
-        gap: 12px;
+    div.stButton > button {
         width: 100%;
-        direction: rtl;
-        margin-bottom: 20px;
-    }}
-    .custom-card {{
-        flex: 1;
-        padding: 16px 10px;
-        border-radius: 14px;
+        border-radius: 12px;
         color: white !important;
-        text-align: center;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
-        transition: all 0.25s ease;
-        text-decoration: none !important;
-        display: block;
-    }}
-    .custom-card:hover {{
-        transform: translateY(-4px);
-        box-shadow: 0 10px 22px rgba(0,0,0,0.2);
-        opacity: 0.92;
-        color: white !important;
-    }}
-    .card-title {{
-        font-size: 13px;
-        font-weight: 700;
-        margin-bottom: 8px;
-        color: white !important;
-    }}
-    .card-val {{
-        font-size: 22px !important;
-        font-weight: 900;
-        color: white !important;
-    }}
+        font-weight: bold;
+        padding: 12px 0px;
+        border: none;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        transition: transform 0.1s ease;
+    }
+    div.stButton > button:hover {
+        transform: scale(1.02);
+        opacity: 0.9;
+    }
     </style>
-
-    <div class="cards-container">
-        <a href="?filter=address" target="_self" class="custom-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
-            <div class="card-title">🏠 فروقات العنوان</div>
-            <div class="card-val">{c_address_diff}</div>
-        </a>
-        <a href="?filter=phone" target="_self" class="custom-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
-            <div class="card-title">📞 فروقات الهاتف</div>
-            <div class="card-val">{c_phone_diff}</div>
-        </a>
-        <a href="?filter=code" target="_self" class="custom-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
-            <div class="card-title">🔑 فروقات الكود</div>
-            <div class="card-val">{c_code_diff}</div>
-        </a>
-        <a href="?filter=diff" target="_self" class="custom-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
-            <div class="card-title">⚠️ الإجمالي</div>
-            <div class="card-val">{c_diff}</div>
-        </a>
-        <a href="?filter=new" target="_self" class="custom-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
-            <div class="card-title">📁 المقارنة</div>
-            <div class="card-val">{c_new}</div>
-        </a>
-        <a href="?filter=main" target="_self" class="custom-card" style="background: linear-gradient(135deg, #34d399, #059669);">
-            <div class="card-title">📦 الرئيسي</div>
-            <div class="card-val">{c_main}</div>
-        </a>
-    </div>
     """,
     unsafe_allow_html=True,
 )
 
-if st.session_state["active_filter"] != "الكل":
-  st.markdown("<br>", unsafe_allow_html=True)
+col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
+
+with col_b1:
   if st.button(
-      f"🔄 إلغاء الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
-      " الكل",
-      use_container_width=True,
+      f"🏠 فروقات العنوان\n\n{c_address_diff}",
+      key:="btn_addr",
+      help="فلترة حسب فروقات العنوان",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
+with col_b2:
+  if st.button(
+      f"📞 فروقات الهاتف\n\n{c_phone_diff}",
+      key:="btn_phone",
+      help="فلترة حسب فروقات الهاتف",
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
+with col_b3:
+  if st.button(
+      f"🔑 فروقات الكود\n\n{c_code_diff}",
+      key:="btn_code",
+      help="فلترة حسب فروقات الكود",
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
+with col_b4:
+  if st.button(
+      f"⚠️ الإجمالي\n\n{c_diff}", key:="btn_diff", help="عرض كافة الاختلافات"
   ):
     st.session_state["active_filter"] = "الكل"
-    st.query_params.clear()
+with col_b5:
+  if st.button(
+      f"📁 المقارنة\n\n{c_new}",
+      key:="btn_new",
+      help="موجود في الملف المقارن فقط",
+  ):
+    st.session_state["active_filter"] = "المقارنة"
+with col_b6:
+  if st.button(
+      f"📦 الرئيسي\n\n{c_main}",
+      key:="btn_main",
+      help="موجود في الملف الرئيسي فقط",
+  ):
+    st.session_state["active_filter"] = "الرئيسي"
+
+st.markdown(
+    f"<div style='text-align: center; margin-top: 10px; font-weight: bold;"
+    f" color: #4F46E5;'>📌 الفلتر النشط حالياً: <span"
+    f" style='background: #e0e7ff; padding: 4px 12px; border-radius: 6px;'>"
+    f"{st.session_state['active_filter']}</span></div>",
+    unsafe_allow_html=True,
+)
+
+if st.session_state["active_filter"] != "الكل":
+  if st.button(
+      "🔄 إلغاء الفلترة وعرض الكل",
+      use_container_width=True,
+      key="reset_filter_btn",
+  ):
+    st.session_state["active_filter"] = "الكل"
     st.rerun()
 
 st.markdown("---")
@@ -366,7 +351,6 @@ if (
     )
 
     final_table = f"""
-        ...
         <table style="width: 100%; border-collapse: collapse; direction: rtl; font-family: sans-serif;">
             <thead><tr>{headers_html}</tr></thead>
             <tbody>{rows_html}</tbody>
@@ -377,4 +361,4 @@ if (
   else:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
-  st.info("لا توجد اختلافات بين الملفين.")
+  st.info("لا توجد اختلافات بين الملفين أو لم يتم رفع الملفات بعد.")
