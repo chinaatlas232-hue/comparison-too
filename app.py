@@ -210,7 +210,6 @@ st.markdown("---")
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# استخدام أزرار Streamlit الحقيقية للمربعات لتجنب فتح روابط خارجية ومنع مشاكل المتصفح
 cols = st.columns(6)
 
 with cols[5]:
@@ -250,30 +249,32 @@ with cols[0]:
   ):
     st.session_state["active_filter"] = "الرئيسي"
 
-# تصميم لتلوين الأزرار باللون الأبيض وتوسيط النصوص وحجم الخط 16px
+# تنسيق CSS بقواعد قوية لضمان ظهور الألوان وتثبيت الخط الأبيض وحجم 16px
 st.markdown(
     """
     <style>
     div.stButton > button {
-        color: #ffffff !important;
-        border-radius: 12px;
-        font-weight: bold;
-        height: 85px;
-        white-space: pre-wrap;
-        font-size: 16px !important;
-        border: none;
+        border-radius: 12px !important;
+        font-weight: bold !important;
+        height: 85px !important;
+        white-space: pre-wrap !important;
+        border: none !important;
     }
-    div.stButton > button p {
+    div.stButton > button p, div.stButton > button span {
         font-size: 16px !important;
         color: #ffffff !important;
     }
-    /* ألوان التدرج الخاصة بالمربعات */
-    div[data-testid="column"]:nth-child(6) button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
-    div[data-testid="column"]:nth-child(5) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; }
-    div[data-testid="column"]:nth-child(4) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
-    div[data-testid="column"]:nth-child(3) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; }
-    div[data-testid="column"]:nth-child(2) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
-    div[data-testid="column"]:nth-child(1) button { background: linear-gradient(135deg, #34d399, #059669) !important; }
+    
+    div[data-testid="column"]:nth-child(6) button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; background-color: #e11d48 !important; }
+    div[data-testid="column"]:nth-child(5) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; background-color: #db2777 !important; }
+    div[data-testid="column"]:nth-child(4) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; background-color: #7c3aed !important; }
+    div[data-testid="column"]:nth-child(3) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; background-color: #ea580c !important; }
+    div[data-testid="column"]:nth-child(2) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; background-color: #0284c7 !important; }
+    div[data-testid="column"]:nth-child(1) button { background: linear-gradient(135deg, #34d399, #059669) !important; background-color: #059669 !important; }
+    
+    div[data-testid="column"] button:hover {
+        opacity: 0.9 !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
