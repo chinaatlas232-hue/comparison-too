@@ -195,7 +195,7 @@ st.markdown(
     .metric-card-1 {{ background: linear-gradient(135deg, #10b981, #047857); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-card-2 {{ background: linear-gradient(135deg, #f97316, #c2410c); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-card-3 {{ background: {diff_bg}; padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-4 {{ background: linear-gradient(135deg, #db2777, #be185d); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-card-4 {{ background: linear-gradient(135deg, #f472b6, #db2777); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-title {{ font-size: 15px; font-weight: bold; margin-bottom: 8px; }}
     .metric-value {{ font-size: 26px; font-weight: bold; }}
     </style>
