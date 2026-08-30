@@ -37,21 +37,32 @@ if uploaded_main and uploaded_new:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     st.markdown("---")
-    # قائمة واحدة فقط لاختيار العمود المشترك (الكود) والباقي تلقائي
-    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
-    default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
+    st.subheader("⚙️ اختر الأعمدة المطابقة لملفاتك:")
 
-    id_col = st.selectbox(
-        "🔑 اختر عمود الكود المشترك فقط:", common_cols, index=default_id_idx
-    )
+    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
+
+    col_a, col_b, col_c = st.columns(3)
+
+    with col_a:
+      id_col = st.selectbox("🔑 عمود الكود المشترك:", common_cols)
+
+    with col_b:
+      # عرض أعمدة الملفات لتختار عمود الهاتف بحرية
+      phone_col = st.selectbox("📞 عمود الهاتف:", list(df_main.columns))
+
+    with col_c:
+      # عرض أعمدة الملفات لتختار عمود العنوان بحرية
+      addr_col = st.selectbox("📍 عمود العنوان:", list(df_main.columns))
 
     if st.button("🚀 ابدأ المقارنة والتحليل الفوري", use_container_width=True):
-      # التعرف التلقائي على الأعمدة الثابتة
-      phone_col = "رقم الهاتف" if "رقم الهاتف" in df_main.columns else "الهاتف"
-      addr_col = "عنوان استلام البضاعة"
-
+      # استخدام الأعمدة المحددة من المستخدم
       m_df = df_main[[id_col, phone_col, addr_col]].copy()
-      n_df = df_new[[id_col, phone_col, addr_col]].copy()
+      
+      # محاولة إيجاد نفس أسماء الأعمدة أو مطابقتها في الملف الجديد
+      n_phone_col = phone_col if phone_col in df_new.columns else df_new.columns[1]
+      n_addr_col = addr_col if addr_col in df_new.columns else df_new.columns[2]
+      
+      n_df = df_new[[id_col, n_phone_col, n_addr_col]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
@@ -96,7 +107,6 @@ if uploaded_main and uploaded_new:
             "العنوان (الجديد)",
         ]
 
-        # شريط بحث واحد فقط للفلترة الفورية
         search_query = st.text_input(
             "🔎 ابحث هنا (بالكود، الهاتف، أو العنوان):"
         )
