@@ -255,51 +255,28 @@ if (
 ):
   df_display = st.session_state["diff_df"].copy()
 
-  # تحويل الجدول إلى HTML مع تلوين صفوف "اختلاف رقم الهاتف" بخلفية وردية خفيفة
-  table_html = (
-      df_display.to_html(escape=False, index=False)
-      .replace(
-          "<table",
-          '<table style="width: 100%; border-collapse: collapse; direction: rtl;'
-          ' font-family: sans-serif;"',
-      )
-      .replace(
-          "<th>",
-          '<th style="background-color: #2563eb; color: white; padding: 12px;'
-          ' text-align: center; font-size: 15px;">',
-      )
-  )
-
-  # استبدال الصفوف التي تحتوي على "اختلاف رقم الهاتف" لتلوينها بالوردي الخفيف
-  table_html = table_html.replace(
-      "<td>اختلاف رقم الهاتف</td>",
-      '<td style="padding: 10px; text-align: center; border-bottom: 1px solid'
-      ' #e5e7eb; font-size: 14px; background-color: #fce7f3; font-weight:'
-      ' bold;">اختلاف رقم الهاتف</td>',
-  )
-
-  # تلوين باقي خلايا نفس الصف بالوردي الخفيف لتظليل الصف بالكامل
-  for idx, row in df_display.iterrows():
-    if row["الحالة"] == "اختلاف رقم الهاتف":
-      # استبدال عام لتلوين الصف الذي يحتوي على هذا الكود
-      pass
-
-  # طريقة مباشرة وأكيدة لتلوين الصفوف عبر البحث في الكود أو الحالة
-  # سنقوم بتعديل دقيق لتوليد HTML الصفوف
+  # بناء الهيكل اليدوي للجدول مع إضافة عمود التسلسل كأول عمود
   rows_html = ""
-  for _, row in df_display.iterrows():
-    is_phone_diff = row["الحالة"] == "اختلاف رقم الهاتف"
+  for i, (_, row) in enumerate(df_display.iterrows(), 1):
+    is_phone_diff = str(row["الحالة"]).strip() == "اختلاف رقم الهاتف"
     row_bg = "background-color: #fdf2f8;" if is_phone_diff else ""
 
-    cells_html = "".join([
-        f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; {row_bg}">{val}</td>'
-        for val in row
-    ])
+    # دمج عمود التسلسل مع بقية الأعمدة
+    cells_html = (
+        f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
+        f' solid #e5e7eb; font-size: 14px; {row_bg} font-weight:'
+        f' bold;">{i}</td>'
+    )
+    for val in row:
+      cells_html += f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; {row_bg}">{val}</td>'
+
     rows_html += f"<tr>{cells_html}</tr>"
 
+  # تجهيز أسماء الأعمدة مع إضافة عمود "التسلسل"
+  columns_list = ["التسلسل"] + list(df_display.columns)
   headers_html = "".join(
       f'<th style="background-color: #2563eb; color: white; padding: 12px; text-align: center; font-size: 15px;">{col}</th>'
-      for col in df_display.columns
+      for col in columns_list
   )
 
   final_table = f"""
