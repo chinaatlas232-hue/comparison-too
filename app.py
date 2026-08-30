@@ -7,13 +7,16 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تقليل الهوامش الفارغة في أعلى الصفحة ورفع المحتوى للأعلى
+# تقليل الهوامش الفارغة وتعديل لون القائمة الجانبية إلى رمادي متوسط الشدة (72%)
 st.markdown(
     """
     <style>
     .block-container {
         padding-top: 1rem !important;
         padding-bottom: 1rem !important;
+    }
+    [data-testid="stSidebar"] {
+        background-color: rgba(180, 180, 180, 0.72) !important;
     }
     div.stButton > button[kind="secondary"] {
         background-color: #ef4444 !important;
