@@ -72,7 +72,7 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود وعمود المقارنة تلقائياً
+    # تحديد عمود الكود تلقائياً
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         common_cols[0],
@@ -111,7 +111,7 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # دمج الملفين بناءً على الكود المشترك بدقة
+    # دمج البيانات بناءً على الكود المشترك لضمان تطابق الأسطر تماماً
     merged_df = pd.merge(
         df_m[["clean_id", "clean_val"]],
         df_n[["clean_id", "clean_val"]],
@@ -120,9 +120,11 @@ if uploaded_main and uploaded_new:
         suffixes=("_main", "_new"),
     )
 
-    # فلترة الصفوف التي بها اختلاف في القيمة لنفس الكود
+    # تصفية الاختلافات الحقيقية فقط (الكود موجود في الملفين لكن القيمة مختلفة)
     diff_rows = merged_df[
-        merged_df["clean_val_main"] != merged_df["clean_val_new"]
+        (merged_df["clean_val_main"] != merged_df["clean_val_new"])
+        & (merged_df["clean_val_main"] != "")
+        & (merged_df["clean_val_new"] != "")
     ].copy()
 
     st.session_state["diff_count"] = len(diff_rows)
@@ -131,7 +133,7 @@ if uploaded_main and uploaded_new:
       diff_rows.columns = ["الكود", f"{selected_col} (الرئيسي)", f"{selected_col} (المقارنة)"]
       st.session_state["diff_df"] = diff_rows
     else:
-      st.session_state["diff_df"] = pd.DataFrame(columns=["الكود", "القيمة (الرئيسي)", "القيمة (المقارنة)"])
+      st.session_state["diff_df"] = pd.DataFrame(columns=["الكود", "الرئيسي", "المقارنة"])
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
@@ -193,7 +195,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات (مع عرض الكود المرتبط):")
+st.subheader("📋 جدول الاختلافات الواضحة:")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
