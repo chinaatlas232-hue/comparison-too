@@ -1,3 +1,4 @@
+import io
 import os
 import pandas as pd
 import streamlit as st
@@ -357,6 +358,22 @@ if not diff_df.empty:
     ]
 
   if not df_display.empty:
+    # زر تصدير الجدول الحالي (حسب الفلتر) إلى ملف Excel
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+      df_display.to_excel(writer, index=False, sheet_name="الاختلافات")
+    excel_data = output.getvalue()
+
+    st.download_button(
+        label="📥 تحميل جدول النتائج الحالي بصيغة Excel",
+        data=excel_data,
+        file_name=f"comparison_results_{current_filter}.xlsx",
+        mime=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        use_container_width=True,
+    )
+
     rows_html = ""
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
