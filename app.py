@@ -37,35 +37,40 @@ if uploaded_main and uploaded_new:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     st.markdown("---")
-    st.subheader("⚙️ تحديد الأعمدة بدقة للمقارنة الصحيحة:")
 
-    # قوائم واضحة لاختيار الأعمدة لضمان عدم حدوث خطأ في المطابقة
+    # فلتر واحد فقط لاختيار العمود المشترك (الكود)
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
     default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-      id_col = st.selectbox(
-          "🔑 عمود الكود المشترك:", common_cols, index=default_id_idx
-      )
-    with col_b:
-      phone_col = st.selectbox("📞 عمود رقم الهاتف:", list(df_main.columns))
-    with col_c:
-      addr_col = st.selectbox("📍 عمود عنوان استلام البضاعة:", list(df_main.columns))
+    id_col = st.selectbox(
+        "🔑 اختر عمود الكود المشترك فقط:", common_cols, index=default_id_idx
+    )
 
     if st.button("🚀 ابدأ المقارنة والتحليل الفوري", use_container_width=True):
-      # سحب الأعمدة بدقة من الملفين
-      m_df = df_main[[id_col, phone_col, addr_col]].copy()
-      
-      # محاولة مطابقة نفس أسماء الأعمدة في الملف الجديد إن وجدت، وإلا استخدام نفس الأسماء
-      n_phone = phone_col if phone_col in df_new.columns else df_new.columns[1]
-      n_addr = addr_col if addr_col in df_new.columns else df_new.columns[2]
-      n_df = df_new[[id_col, n_phone, n_addr]].copy()
+      # البحث التلقائي الذكي عن أعمدة الهاتف والعنوان دون أي قوائم إضافية
+      def find_best_col(df, keywords):
+        for col in df.columns:
+          for kw in keywords:
+            if kw in str(col).lower():
+              return col
+        return df.columns[1]
+
+      phone_main = find_best_col(df_main, ["هاتف", "phone", "جوال", "رقم"])
+      addr_main = find_best_col(
+          df_main, ["عنوان", "address", "استلام", "البضاعة", "مكان"]
+      )
+
+      phone_new = (
+          phone_main if phone_main in df_new.columns else df_new.columns[1]
+      )
+      addr_new = addr_main if addr_main in df_new.columns else df_new.columns[2]
+
+      m_df = df_main[[id_col, phone_main, addr_main]].copy()
+      n_df = df_new[[id_col, phone_new, addr_new]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
 
-      # تنظيف دقيق للنصوص والأرقام لمنع فروق التنسيق الوهمية (مثل .0 في الأرقام وفراغات النصوص)
       def clean_series(series):
         return (
             series.astype(str)
@@ -93,12 +98,12 @@ if uploaded_main and uploaded_new:
       diff_df = merged[merged["phone_diff"] | merged["address_diff"]].copy()
       matched_count = total_common - len(diff_df)
 
-      st.success("تمت المقارنة بنجاح وبدقة متناهية!")
+      st.success("تمت المقارنة بنجاح!")
 
       col1, col2, col3 = st.columns(3)
       col1.metric("📦 إجمالي السجلات المشتركة", total_common)
       col2.metric("✅ السجلات المتطابقة تماماً", matched_count)
-      col3.metric("⚠️ السجلات التي بها اختلافات حقيقية", len(diff_df))
+      col3.metric("⚠️ السجلات التي بها اختلافات", len(diff_df))
 
       st.markdown("---")
       st.subheader("🔍 جدول الاختلافات (مع شريط بحث واحد):")
