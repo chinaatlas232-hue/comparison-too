@@ -7,6 +7,30 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
+# تقليل الهوامش الفارغة في أعلى الصفحة ورفع المحتوى للأعلى
+st.markdown(
+    """
+    <style>
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+    div.stButton > button[kind="secondary"] {
+        background-color: #ef4444 !important;
+        color: white !important;
+    }
+    div.stButton > button[kind="secondary"] p {
+        color: white !important;
+    }
+    div.stButton > button[kind="secondary"]:hover {
+        background-color: #dc2626 !important;
+        color: white !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # إنشاء مجلد لحفظ الملفات على السيرفر لضمان عدم ضياعها وثباتها دائماً
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -17,26 +41,6 @@ new_file_path = os.path.join(UPLOAD_DIR, "new_file.xlsx")
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
 
-  # تنسيق زر المسح (خلفية حمراء وكتابة بيضاء)
-  st.markdown(
-      """
-        <style>
-        div.stButton > button[kind="secondary"] {
-            background-color: #ef4444 !important;
-            color: white !important;
-        }
-        div.stButton > button[kind="secondary"] p {
-            color: white !important;
-        }
-        div.stButton > button[kind="secondary"]:hover {
-            background-color: #dc2626 !important;
-            color: white !important;
-        }
-        </style>
-        """,
-      unsafe_allow_html=True,
-  )
-
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
     if os.path.exists(main_file_path):
       os.remove(main_file_path)
@@ -45,13 +49,6 @@ with st.sidebar:
     for key in list(st.session_state.keys()):
       del st.session_state[key]
     st.rerun()
-
-st.markdown(
-    """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الملفات الذكية (المطابقة الدقيقة)</h2>
-    """,
-    unsafe_allow_html=True,
-)
 
 col1, col2 = st.columns(2)
 
@@ -91,7 +88,6 @@ if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
 
-# تم إلغاء الكاش هنا (cache_data) لضمان قراءة التعديلات الجديدة مباشرة من السيرفر فور حدوثها
 def load_data(file1, file2):
   df1 = pd.read_excel(file1, sheet_name=0)
   df2 = pd.read_excel(file2, sheet_name=0)
