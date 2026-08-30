@@ -213,14 +213,14 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تنسيق الأزرار مع خلفيات ملونة واضحة وأصوص بيضاء بارزة
+# تسيق الأزرار مع خلفيات ملونة والنصوص والأرقام باللون الأسود البارز
 st.markdown(
     """
     <style>
     div.stButton > button {
         width: 100% !important;
         border-radius: 14px !important;
-        color: white !important;
+        color: #111827 !important;
         font-size: 16px !important;
         font-weight: bold !important;
         padding: 18px 10px !important;
@@ -229,20 +229,20 @@ st.markdown(
         transition: transform 0.1s ease !important;
     }
     div.stButton > button p {
-        color: white !important;
+        color: #111827 !important;
         font-weight: bold !important;
     }
     div.stButton > button:hover {
         transform: scale(1.02) !important;
         opacity: 0.92 !important;
-        color: white !important;
+        color: #111827 !important;
     }
-    #b_addr > button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
-    #b_phone > button { background: linear-gradient(135deg, #f472b6, #db2777) !important; }
-    #b_code > button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
-    #b_diff > button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; }
-    #b_new > button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
-    #b_main > button { background: linear-gradient(135deg, #34d399, #059669) !important; }
+    #b_addr > button { background: linear-gradient(135deg, #fda4af, #fb7185) !important; }
+    #b_phone > button { background: linear-gradient(135deg, #fbcfe8, #f472b6) !important; }
+    #b_code > button { background: linear-gradient(135deg, #ddd6fe, #a78bfa) !important; }
+    #b_diff > button { background: linear-gradient(135deg, #fed7aa, #fb923c) !important; }
+    #b_new > button { background: linear-gradient(135deg, #bae6fd, #38bdf8) !important; }
+    #b_main > button { background: linear-gradient(135deg, #a7f3d0, #34d399) !important; }
     </style>
     """,
     unsafe_allow_html=True,
