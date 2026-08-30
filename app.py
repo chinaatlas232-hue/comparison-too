@@ -70,22 +70,36 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود تلقائياً
+    # 1. البحث التلقائي عن عمود الكود للربط الأساسي
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
-        common_cols[0],
+        None,
     )
+    if not code_col:
+      code_col = common_cols[0]
 
-    default_idx = 0
-    for i, col in enumerate(common_cols):
+    # استبعاد عمود الكود من قائمة اختيار عمود المقارنة لكي يظهر عمود الهاتف حصراً
+    comparison_options = [c for c in common_cols if c != code_col]
+    if not comparison_options:
+      comparison_options = common_cols
+
+    # تحديد عمود الهاتف افتراضياً إن وجد
+    default_phone_idx = 0
+    for i, col in enumerate(comparison_options):
       if "هاتف" in str(col) or "phone" in str(col).lower():
-        default_idx = i
+        default_phone_idx = i
         break
 
+    st.markdown(
+        f"📌 **تم استخدام عمود الأساس للربط:** `{code_col}`",
+        unsafe_allow_html=True,
+    )
+
+    # قائمة منسدلة لاختيار عمود المقارنة (الهاتف أو غيره)
     selected_col = st.selectbox(
-        "🔑 اختر عمود المقارنة الأساسي (رقم الهاتف):",
-        common_cols,
-        index=default_idx,
+        "🔑 اختر عمود رقم الهاتف للمقارنة بين الملفين:",
+        comparison_options,
+        index=default_phone_idx,
     )
 
     def clean_series(series):
@@ -119,7 +133,7 @@ if uploaded_main and uploaded_new:
         suffixes=("_main", "_new"),
     )
 
-    # فلترة الاختلافات الحقيقية فقط بين القيمتين لنفس الكود
+    # فلترة الصفوف التي اختلف فيها رقم الهاتف بين الملفين
     diff_rows = merged_df[
         (merged_df["clean_val_main"] != merged_df["clean_val_new"])
         & (merged_df["clean_val_main"] != "")
@@ -200,7 +214,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات الدقيقة:")
+st.subheader("📋 جدول الاختلافات في أرقام الهواتف:")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -209,4 +223,4 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("لا توجد اختلافات مسجلة في أرقام الهواتف أو أن الملفات متطابقة.")
+  st.info("لا توجد اختلافات مسجلة في أرقام الهواتف بناءً على الأكواد المشتركة.")
