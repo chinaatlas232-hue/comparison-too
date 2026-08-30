@@ -24,17 +24,26 @@ st.markdown(
 
 col1, col2 = st.columns(2)
 with col1:
-    uploaded_main = st.file_uploader(
-        "📁 ارفع الملف الرئيسي (Master File)",
-        type=["xlsx", "xls"],
-        key="main_file",
-    )
+  uploaded_main = st.file_uploader(
+      "📁 ارفع الملف الرئيسي (Master File)",
+      type=["xlsx", "xls"],
+      key="main_file",
+  )
+  if uploaded_main is not None:
+    st.session_state["saved_main"] = uploaded_main
+
 with col2:
-    uploaded_new = st.file_uploader(
-        "📁 ارفع الملف المراد مقارنته (New File)",
-        type=["xlsx", "xls"],
-        key="new_file",
-    )
+  uploaded_new = st.file_uploader(
+      "📁 ارفع الملف المراد مقارنته (New File)",
+      type=["xlsx", "xls"],
+      key="new_file",
+  )
+  if uploaded_new is not None:
+    st.session_state["saved_new"] = uploaded_new
+
+# اعتماد الملفات المحفوظة لضمان ثباتها وعدم ضياعها
+active_main = st.session_state.get("saved_main", None)
+active_new = st.session_state.get("saved_new", None)
 
 
 @st.cache_data
@@ -46,9 +55,9 @@ def load_data(file1, file2):
   return df1, df2
 
 
-if uploaded_main and uploaded_new:
+if active_main and active_new:
   try:
-    df_main, df_new = load_data(uploaded_main, uploaded_new)
+    df_main, df_new = load_data(active_main, active_new)
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
@@ -204,7 +213,7 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تلوين الأزرار بشكل مباشر وتكبير حجمها
+# تسيق الأزرار الملونة الكبيرة
 st.markdown(
     """
     <style>
