@@ -35,7 +35,7 @@ with st.sidebar:
 
 st.markdown(
     """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الأكواد والهواتف البسيطة</h2>
+    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الملفات الذكية</h2>
     """,
     unsafe_allow_html=True,
 )
@@ -71,30 +71,19 @@ if uploaded_main and uploaded_new:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
-    default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
-    # اختيار عمود الكود
-    id_col = st.selectbox(
-        "🔑 اختر عمود الكود المشترك حصراً:", common_cols, index=default_id_idx
-    )
+    # محاولة جعل الافتراضي يختار "الكود" أو "رقم الهاتف" إن وجد
+    default_idx = 0
+    for i, col in enumerate(common_cols):
+      if "الكود" in str(col) or "هاتف" in str(col) or "phone" in str(col).lower():
+        default_idx = i
+        break
 
-    # اختيار عمود الهاتف ببحث ذكي افتراضي
-    default_phone = next(
-        (
-            c
-            for c in common_cols
-            if any(k in c.lower() for k in ["هاتف", "phone", "جوال", "رقم"])
-        ),
-        common_cols[1] if len(common_cols) > 1 else common_cols[0],
-    )
-    default_phone_idx = (
-        common_cols.index(default_phone)
-        if default_phone in common_cols
-        else 0
-    )
-
-    phone_col = st.selectbox(
-        "📞 اختر عمود الهاتف المشترك:", common_cols, index=default_phone_idx
+    # قائمة منسدلة واحدة فقط لتحديد العمود المستهدف للمقارنة (سواء كود أو رقم هاتف)
+    selected_col = st.selectbox(
+        "🔑 اختر عمود المقارنة الأساسي (الكود أو رقم الهاتف):",
+        common_cols,
+        index=default_idx,
     )
 
     def clean_series(series):
@@ -106,12 +95,11 @@ if uploaded_main and uploaded_new:
           .replace("nan", "")
       )
 
-    # تحضير البيانات للأكواد
-    main_ids = clean_series(df_main[id_col])
-    new_ids = clean_series(df_new[id_col])
+    main_vals = clean_series(df_main[selected_col])
+    new_vals = clean_series(df_new[selected_col])
 
-    main_set = set(main_ids[main_ids != ""])
-    new_set = set(new_ids[new_ids != ""])
+    main_set = set(main_vals[main_vals != ""])
+    new_set = set(new_vals[new_vals != ""])
 
     st.session_state["count_main"] = len(main_set)
     st.session_state["count_new"] = len(new_set)
@@ -121,37 +109,11 @@ if uploaded_main and uploaded_new:
 
     if diff_set:
       st.session_state["diff_df"] = pd.DataFrame(
-          list(diff_set), columns=["الكود المختلف"]
+          list(diff_set), columns=[f"القيم المختلفة لـ ({selected_col})"]
       )
     else:
-      st.session_state["diff_df"] = pd.DataFrame(columns=["الكود المختلف"])
-
-    # مقارنة أقم الهواتف للأكواد المشتركة
-    df_m_sub = df_main[[id_col, phone_col]].copy()
-    df_n_sub = df_new[[id_col, phone_col]].copy()
-
-    df_m_sub.columns = ["id", "phone"]
-    df_n_sub.columns = ["id", "phone"]
-
-    df_m_sub["id"] = clean_series(df_m_sub["id"])
-    df_n_sub["id"] = clean_series(df_n_sub["id"])
-    df_m_sub["phone"] = clean_series(df_m_sub["phone"])
-    df_n_sub["phone"] = clean_series(df_n_sub["phone"])
-
-    # دمج الملفين بناءً على الكود المشترك لفحص اختلاف الهاتف
-    merged_phones = pd.merge(
-        df_m_sub, df_n_sub, on="id", suffixes=("_main", "_new")
-    )
-    phone_diffs = merged_phones[
-        merged_phones["phone_main"] != merged_phones["phone_new"]
-    ].copy()
-
-    if not phone_diffs.empty:
-      phone_diffs.columns = ["الكود", "هاتف الملف الرئيسي", "هاتف ملف المقارنة"]
-      st.session_state["phone_diff_df"] = phone_diffs
-    else:
-      st.session_state["phone_diff_df"] = pd.DataFrame(
-          columns=["الكود", "هاتف الملف الرئيسي", "هاتف ملف المقارنة"]
+      st.session_state["diff_df"] = pd.DataFrame(
+          columns=[f"القيم المختلفة لـ ({selected_col})"]
       )
 
   except Exception as e:
@@ -188,7 +150,7 @@ with col1:
   st.markdown(
       f"""
         <div class="metric-card-1">
-            <div class="metric-title">📦 عدد الكودات (الملف الرئيسي)</div>
+            <div class="metric-title">📦 عدد العناصر (الملف الرئيسي)</div>
             <div class="metric-value">{c_main}</div>
         </div>
         """,
@@ -198,7 +160,7 @@ with col2:
   st.markdown(
       f"""
         <div class="metric-card-2">
-            <div class="metric-title">📁 عدد الكودات (ملف المقارنة)</div>
+            <div class="metric-title">📁 عدد العناصر (ملف المقارنة)</div>
             <div class="metric-value">{c_new}</div>
         </div>
         """,
@@ -208,16 +170,16 @@ with col3:
   st.markdown(
       f"""
         <div class="metric-card-3">
-            <div class="metric-title">⚠️ الفرق الإجمالي للأكواد</div>
+            <div class="metric-title">⚠️ الفرق الإجمالي</div>
             <div class="metric-value">{c_diff}</div>
         </div>
         """,
       unsafe_allow_html=True,
   )
 
-# جدول الأكواد المختلفة
+# عرض جدول النتائج والاختلافات في أسفل الشاشة بناءً على القائمة الوحيدة
 st.markdown("---")
-st.subheader("📋 جدول الأكواد المختلفة (النتيجة):")
+st.subheader("📋 جدول الاختلافات (النتيجة):")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -226,22 +188,7 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("لا توجد اختلافات في الأكواد أو لم يتم رفع الملفات بعد.")
-
-# جدول اختلافات أرقام الهواتف الجديد
-st.markdown("---")
-st.subheader("📞 جدول اختلاف أقام الهواتف (لنفس الأكواد):")
-if (
-    "phone_diff_df" in st.session_state
-    and not st.session_state["phone_diff_df"].empty
-):
-  st.dataframe(
-      st.session_state["phone_diff_df"],
-      use_container_width=True,
-      hide_index=True,
-  )
-else:
   st.info(
-      "لا توجد اختلافات في أرقام الهواتف بين الملفين أو لم تقم باختيار العمود"
-      " بعد."
+      "الرجاء رفع الملفات واختيار العمود المطلوب من القائمة أعلاه لعرض"
+      " النتائج."
   )
