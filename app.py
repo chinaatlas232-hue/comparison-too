@@ -12,7 +12,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# رفع الملفات
 col1, col2 = st.columns(2)
 with col1:
     uploaded_main = st.file_uploader(
@@ -38,54 +37,21 @@ if uploaded_main and uploaded_new:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     st.markdown("---")
-    st.subheader("⚙️ إعدادات الأعمدة الأساسية للمقارنة")
-
-    col_a, col_b, col_c = st.columns(3)
-
+    # قائمة واحدة فقط لاختيار العمود المشترك (الكود) والباقي تلقائي
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
+    default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
-    with col_a:
-      default_id_idx = (
-          common_cols.index("الكود") if "الكود" in common_cols else 0
-      )
-      id_col = st.selectbox(
-          "🔑 العمود المعرّف المشترك:",
-          common_cols,
-          index=default_id_idx,
-          key="id_col_select",
-      )
+    id_col = st.selectbox(
+        "🔑 اختر عمود الكود المشترك فقط:", common_cols, index=default_id_idx
+    )
 
-    with col_b:
-      p_main = st.selectbox(
-          "📞 عمود الهاتف (الرئيسي):",
-          list(df_main.columns),
-          index=0,
-          key="p_main_select",
-      )
-      p_new = st.selectbox(
-          "📞 عمود الهاتف (الجديد):",
-          list(df_new.columns),
-          index=0,
-          key="p_new_select",
-      )
+    if st.button("🚀 ابدأ المقارنة والتحليل الفوري", use_container_width=True):
+      # التعرف التلقائي على الأعمدة الثابتة
+      phone_col = "رقم الهاتف" if "رقم الهاتف" in df_main.columns else "الهاتف"
+      addr_col = "عنوان استلام البضاعة"
 
-    with col_c:
-      a_main = st.selectbox(
-          "📍 عمود العنوان (الرئيسي):",
-          list(df_main.columns),
-          index=0,
-          key="a_main_select",
-      )
-      a_new = st.selectbox(
-          "📍 عمود العنوان (الجديد):",
-          list(df_new.columns),
-          index=0,
-          key="a_new_select",
-      )
-
-    if st.button("🚀 ابدأ المقارنة والتحليل", use_container_width=True):
-      m_df = df_main[[id_col, p_main, a_main]].copy()
-      n_df = df_new[[id_col, p_new, a_new]].copy()
+      m_df = df_main[[id_col, phone_col, addr_col]].copy()
+      n_df = df_new[[id_col, phone_col, addr_col]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
@@ -100,7 +66,6 @@ if uploaded_main and uploaded_new:
       merged = pd.merge(
           m_df, n_df, on="id", how="inner", suffixes=("_main", "_new")
       )
-
       total_common = len(merged)
 
       merged["phone_diff"] = merged["phone_main"] != merged["phone_new"]
@@ -117,7 +82,7 @@ if uploaded_main and uploaded_new:
       col3.metric("⚠️ السجلات التي بها اختلافات", len(diff_df))
 
       st.markdown("---")
-      st.subheader("🔍 جدول الاختلافات مع فلتر بحث واحد:")
+      st.subheader("🔍 جدول الاختلافات (مع شريط بحث واحد):")
 
       if len(diff_df) > 0:
         display_diff = diff_df[
@@ -131,13 +96,10 @@ if uploaded_main and uploaded_new:
             "العنوان (الجديد)",
         ]
 
-        # فلتر بحث واحد فقط يبحث في جميع الأعمدة المعروضة
+        # شريط بحث واحد فقط للفلترة الفورية
         search_query = st.text_input(
-            "🔎 ابحث برقم الكود، الهاتف، أو العنوان:",
-            "",
-            placeholder="اكتب هنا للبحث الفوري...",
+            "🔎 ابحث هنا (بالكود، الهاتف، أو العنوان):"
         )
-
         if search_query:
           mask = display_diff.astype(str).apply(
               lambda x: x.str.contains(search_query, case=False, na=False)
@@ -148,9 +110,9 @@ if uploaded_main and uploaded_new:
 
         csv = display_diff.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
-            label="📥 تحميل تقارير الاختلافات المصفاة كملف CSV",
+            label="📥 تحميل تقرير الاختلافات كملف CSV",
             data=csv,
-            file_name="filtered_differences_report.csv",
+            file_name="differences_report.csv",
             mime="text/csv",
         )
       else:
