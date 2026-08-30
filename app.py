@@ -210,104 +210,101 @@ st.markdown("---")
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# معالجة معاملات الـ URL لتحديث الفلتر فوراً وبدون فتح متصفح خارجي
-query_params = st.query_params
-if "filter" in query_params:
-  f_val = query_params["filter"]
-  if f_val == "code":
-    st.session_state["active_filter"] = "فروقات الكود"
-  elif f_val == "phone":
-    st.session_state["active_filter"] = "فروقات الهاتف"
-  elif f_val == "address":
-    st.session_state["active_filter"] = "فروقات العنوان"
-  elif f_val == "diff":
-    st.session_state["active_filter"] = "الكل"
-  elif f_val == "new":
-    st.session_state["active_filter"] = "المقارنة"
-  elif f_val == "main":
-    st.session_state["active_filter"] = "الرئيسي"
-
-# تصميم عصري وجذاب جداً لبطاقات الإحصائيات مع خلفيات متدرجة وظلال وحجم خط واضح
+# حقن CSS مخصص لأزرار ستريمليت لتحويلها إلى بطاقات ملونة بالكامل، عصرية وبدون أي متصفحات خارجية
 st.markdown(
-    f"""
+    """
     <style>
-    .metrics-grid {{
-        display: flex;
-        gap: 12px;
-        width: 100%;
-        direction: rtl;
-        margin-bottom: 20px;
-    }}
-    .metric-card {{
-        flex: 1;
-        padding: 16px 12px;
-        border-radius: 14px;
-        color: #ffffff !important;
-        text-align: center;
-        cursor: pointer;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.1);
-        transition: all 0.25s ease;
-        text-decoration: none !important;
-        display: block;
-    }}
-    .metric-card:hover {{
-        transform: translateY(-4px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-        opacity: 0.95;
-        color: #ffffff !important;
-    }}
-    .m-title {{
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        color: #ffffff !important;
-        opacity: 0.95;
-    }}
-    .m-value {{
-        font-size: 20px !important;
-        font-weight: 800;
-        color: #ffffff !important;
-    }}
+    /* تحسين شكل أزرار ستريمليت لتصبح كبطاقات إحصائية ملونة وعصرية */
+    div.stButton > button {
+        width: 100% !important;
+        border-radius: 14px !important;
+        padding: 18px 10px !important;
+        font-weight: 800 !important;
+        color: white !important;
+        border: none !important;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.1) !important;
+        transition: all 0.25s ease-in-out !important;
+        font-size: 16px !important;
+        line-height: 1.6 !important;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-4px) !important;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.18) !important;
+        opacity: 0.95 !important;
+        color: white !important;
+    }
+    
+    /* تلوين كل بطاقة زر على حدة بناءً على مكانها في الأعمدة الستة */
+    div[data-testid="column"]:nth-of-type(1) button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
+    div[data-testid="column"]:nth-of-type(2) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; }
+    div[data-testid="column"]:nth-of-type(3) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
+    div[data-testid="column"]:nth-of-type(4) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; }
+    div[data-testid="column"]:nth-of-type(5) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
+    div[data-testid="column"]:nth-of-type(6) button { background: linear-gradient(135deg, #34d399, #059669) !important; }
     </style>
-
-    <div class="metrics-grid">
-        <a href="?filter=address" class="metric-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
-            <div class="m-title">🏠 فروقات العنوان</div>
-            <div class="m-value">{c_address_diff}</div>
-        </a>
-        <a href="?filter=phone" class="metric-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
-            <div class="m-title">📞 فروقات الهاتف</div>
-            <div class="m-value">{c_phone_diff}</div>
-        </a>
-        <a href="?filter=code" class="metric-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
-            <div class="m-title">🔑 فروقات الكود</div>
-            <div class="m-value">{c_code_diff}</div>
-        </a>
-        <a href="?filter=diff" class="metric-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
-            <div class="m-title">⚠️ الإجمالي</div>
-            <div class="m-value">{c_diff}</div>
-        </a>
-        <a href="?filter=new" class="metric-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
-            <div class="m-title">📁 المقارنة</div>
-            <div class="m-value">{c_new}</div>
-        </a>
-        <a href="?filter=main" class="metric-card" style="background: linear-gradient(135deg, #34d399, #059669);">
-            <div class="m-title">📦 الرئيسي</div>
-            <div class="m-value">{c_main}</div>
-        </a>
-    </div>
     """,
     unsafe_allow_html=True,
 )
 
+# استخدام أزرار ستريمليت حقيقية 100% لضمان عدم حدوث أي توجيه لمتصفح خارجي
+col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
+
+with col_b1:
+  if st.button(
+      f"🏠 فروقات العنوان\n{c_address_diff}",
+      use_container_width=True,
+      key="btn_addr",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
+    st.rerun()
+
+with col_b2:
+  if st.button(
+      f"📞 فروقات الهاتف\n{c_phone_diff}",
+      use_container_width=True,
+      key="btn_phone",
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
+    st.rerun()
+
+with col_b3:
+  if st.button(
+      f"🔑 فروقات الكود\n{c_code_diff}",
+      use_container_width=True,
+      key="btn_code",
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
+    st.rerun()
+
+with col_b4:
+  if st.button(
+      f"⚠️ الإجمالي\n{c_diff}", use_container_width=True, key="btn_diff"
+  ):
+    st.session_state["active_filter"] = "الكل"
+    st.rerun()
+
+with col_b5:
+  if st.button(
+      f"📁 المقارنة\n{c_new}", use_container_width=True, key="btn_new"
+  ):
+    st.session_state["active_filter"] = "المقارنة"
+    st.rerun()
+
+with col_b6:
+  if st.button(
+      f"📦 الرئيسي\n{c_main}", use_container_width=True, key="btn_main"
+  ):
+    st.session_state["active_filter"] = "الرئيسي"
+    st.rerun()
+
 if st.session_state["active_filter"] != "الكل":
+  st.markdown("<br>", unsafe_allow_html=True)
   if st.button(
       f"🔄 إلغاء الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
       " الكل",
       use_container_width=True,
   ):
     st.session_state["active_filter"] = "الكل"
-    st.query_params.clear()
     st.rerun()
 
 st.markdown("---")
