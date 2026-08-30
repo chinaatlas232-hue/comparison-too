@@ -38,18 +38,16 @@ if uploaded_main and uploaded_new:
 
     st.markdown("---")
 
+    # قائمة منسدلة واحدة فقط لاختيار عمود الكود المشترك
+    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
+    default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
+
+    id_col = st.selectbox(
+        "🔑 اختر عمود الكود المشترك حصراً:", common_cols, index=default_id_idx
+    )
+
     if st.button("🚀 ابدأ المقارنة وعرض الاختلافات فوراً", use_container_width=True):
-      # البحث التلقائي عن عمود الكود في كلا الملفين
-      def find_id_col(df):
-        for col in df.columns:
-          if "كود" in str(col).lower() or "id" in str(col).lower():
-            return col
-        return df.columns[0]  # افتراض العمود الأول إذا لم يوجد
-
-      id_main = find_id_col(df_main)
-      id_new = find_id_col(df_new)
-
-      # البحث التلقائي عن أعمدة الهاتف والعنوان مقارنةً بأسماء الأعمدة الثابتة
+      # البحث التلقائي الذكي عن أعمدة الهاتف والعنوان في الملفين
       def find_best_col(df, keywords):
         for col in df.columns:
           for kw in keywords:
@@ -67,9 +65,8 @@ if uploaded_main and uploaded_new:
       )
       addr_new = addr_main if addr_main in df_new.columns else df_new.columns[2]
 
-      # تجهيز البيانات بناءً على الكود حصراً
-      m_df = df_main[[id_main, phone_main, addr_main]].copy()
-      n_df = df_new[[id_new, phone_new, addr_new]].copy()
+      m_df = df_main[[id_col, phone_main, addr_main]].copy()
+      n_df = df_new[[id_col, phone_new, addr_new]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
@@ -90,7 +87,7 @@ if uploaded_main and uploaded_new:
       m_df["address"] = clean_series(m_df["address"])
       n_df["address"] = clean_series(n_df["address"])
 
-      # الدمج والمقارنة حصراً بناءً على الكود (on="id")
+      # الدمج والمقارنة بناءً على عمود الكود المختار حصراً
       merged = pd.merge(
           m_df, n_df, on="id", how="inner", suffixes=("_main", "_new")
       )
@@ -133,7 +130,7 @@ if uploaded_main and uploaded_new:
             )
             a_stat = (
                 "🟢 متطابق"
-                if row["address_main"] == row["address_new"]
+                if row['address_main'] == row['address_new']
                 else "🔴 مختلف"
             )
             st.markdown(
