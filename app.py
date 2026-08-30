@@ -203,85 +203,58 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
 
-# تصميم الأزرار الملونة الحقيقية المربوطة بالفلتر التفاعلي
+# عرض البطاقات الإحصائية الملونة بشكل نظيف وثابت 100%
 st.markdown(
-    """
-    <style>
-    /* تخصيص أشكال الأزرار لتكون كالبطاقات الملونة تماماً */
-    div.stButton > button {
-        width: 100%;
-        border-radius: 12px;
-        color: white !important;
-        font-weight: bold;
-        padding: 10px 0px;
-        border: none;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        transition: transform 0.1s ease;
-    }
-    div.stButton > button:hover {
-        transform: scale(1.03);
-        opacity: 0.92;
-        color: white !important;
-    }
-    /* ألوان مخصصة لكل زر حسب الفئة */
-    #btn_addr > button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
-    #btn_phone > button { background: linear-gradient(135deg, #f472b6, #db2777) !important; }
-    #btn_code > button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
-    #btn_diff > button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; }
-    #btn_new > button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
-    #btn_main > button { background: linear-gradient(135deg, #34d399, #059669) !important; }
-    </style>
+    f"""
+    <div style="display: flex; gap: 10px; width: 100%; direction: rtl; margin-bottom: 20px;">
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #fb7185, #e11d48); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">🏠 فروقات العنوان</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_address_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #f472b6, #db2777); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📞 فروقات الهاتف</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_phone_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">🔑 فروقات الكود</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_code_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #fb923c, #ea580c); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">⚠️ الإجمالي</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #38bdf8, #0284c7); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📁 المقارنة</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_new}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #34d399, #059669); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📦 الرئيسي</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_main}</div>
+        </div>
+    </div>
     """,
     unsafe_allow_html=True,
 )
 
-cols = st.columns(6)
-
-with cols[0]:
-  st.markdown('<div id="btn_addr">', unsafe_allow_html=True)
-  if st.button(
-      f"🏠 فروقات العنوان\n\n{c_address_diff}", key="click_addr"
-  ):
-    st.session_state["active_filter"] = "فروقات العنوان"
-  st.markdown("</div>", unsafe_allow_html=True)
-
-with cols[1]:
-  st.markdown('<div id="btn_phone">', unsafe_allow_html=True)
-  if st.button(f"📞 فروقات الهاتف\n\n{c_phone_diff}", key="click_phone"):
-    st.session_state["active_filter"] = "فروقات الهاتف"
-  st.markdown("</div>", unsafe_allow_html=True)
-
-with cols[2]:
-  st.markdown('<div id="btn_code">', unsafe_allow_html=True)
-  if st.button(f"🔑 فروقات الكود\n\n{c_code_diff}", key="click_code"):
-    st.session_state["active_filter"] = "فروقات الكود"
-  st.markdown("</div>", unsafe_allow_html=True)
-
-with cols[3]:
-  st.markdown('<div id="btn_diff">', unsafe_allow_html=True)
-  if st.button(f"⚠️ الإجمالي\n\n{c_diff}", key="click_diff"):
-    st.session_state["active_filter"] = "الكل"
-  st.markdown("</div>", unsafe_allow_html=True)
-
-with cols[4]:
-  st.markdown('<div id="btn_new">', unsafe_allow_html=True)
-  if st.button(f"📁 المقارنة\n\n{c_new}", key="click_new"):
-    st.session_state["active_filter"] = "المقارنة"
-  st.markdown("</div>", unsafe_allow_html=True)
-
-with cols[5]:
-  st.markdown('<div id="btn_main">', unsafe_allow_html=True)
-  if st.button(f"📦 الرئيسي\n\n{c_main}", key="click_main"):
-    st.session_state["active_filter"] = "الرئيسي"
-  st.markdown("</div>", unsafe_allow_html=True)
-
-st.markdown(
-    f"<div style='text-align: center; margin-top: 15px; font-weight: bold;"
-    f" color: #4F46E5;'>📌 الفلتر النشط حالياً في الجدول: <span"
-    f" style='background: #e0e7ff; padding: 4px 14px; border-radius: 6px;'>"
-    f"{st.session_state['active_filter']}</span></div>",
-    unsafe_allow_html=True,
+# قائمة منسدلة مرتبطة بالجدول ومستقرة تماماً ولا تسبب أي حذف للملفات
+filter_options = [
+    "الكل",
+    "فروقات العنوان",
+    "فروقات الهاتف",
+    "فروقات الكود",
+    "الرئيسي",
+    "المقارنة",
+]
+current_index = (
+    filter_options.index(st.session_state["active_filter"])
+    if st.session_state["active_filter"] in filter_options
+    else 0
 )
+
+selected_filter = st.selectbox(
+    "🔍 اختر فلتر الجدول:", filter_options, index=current_index
+)
+st.session_state["active_filter"] = selected_filter
 
 st.markdown("---")
 st.subheader(
@@ -293,25 +266,24 @@ if (
     and not st.session_state["diff_df"].empty
 ):
   df_display = st.session_state["diff_df"].copy()
-  current_filter = st.session_state["active_filter"]
 
-  if current_filter == "فروقات الكود":
+  if selected_filter == "فروقات الكود":
     df_display = df_display[
         df_display["الحالة"].str.contains("فقط", na=False)
     ]
-  elif current_filter == "فروقات الهاتف":
+  elif selected_filter == "فروقات الهاتف":
     df_display = df_display[
         df_display["الحالة"].str.contains("الهاتف|هاتف وعنوان", na=False)
     ]
-  elif current_filter == "فروقات العنوان":
+  elif selected_filter == "فروقات العنوان":
     df_display = df_display[
         df_display["الحالة"].str.contains("العنوان|هاتف وعنوان", na=False)
     ]
-  elif current_filter == "الرئيسي":
+  elif selected_filter == "الرئيسي":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في الرئيسي فقط", na=False)
     ]
-  elif current_filter == "المقارنة":
+  elif selected_filter == "المقارنة":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في المقارنة فقط", na=False)
     ]
