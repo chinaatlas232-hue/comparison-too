@@ -69,7 +69,7 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود تلقائياً للبحث والربط الحصري
+    # تحديد عمود الكود بدقة تامة
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
@@ -77,7 +77,7 @@ if uploaded_main and uploaded_new:
     if not code_col:
       code_col = common_cols[0]
 
-    # استبعاد عمود الكود من قائمة المقارنة لعرض عمود الهاتف فقط
+    # اختيار عمود رقم الهاتف للمقارنة
     comparison_options = [c for c in common_cols if c != code_col]
     if not comparison_options:
       comparison_options = common_cols
@@ -89,7 +89,7 @@ if uploaded_main and uploaded_new:
         break
 
     st.markdown(
-        f"📌 **الاعتماد في البحث والربط حصراً على عمود الكود:** `{code_col}`",
+        f"📌 **البحث والربط يتم حصراً عبر عمود الكود:** `{code_col}`",
         unsafe_allow_html=True,
     )
 
@@ -112,7 +112,7 @@ if uploaded_main and uploaded_new:
     df_m = df_main.copy()
     df_n = df_new.copy()
 
-    # تجهيز مفتاح الكود للبحث المطرّق
+    # تنظيف الأعمدة
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
@@ -122,20 +122,19 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # دمج الملفين حصراً بناءً على تطابق الكود (Inner Join عبر clean_id)
-    merged_df = pd.merge(
-        df_m[["clean_id", "clean_val"]],
-        df_n[["clean_id", "clean_val"]],
-        on="clean_id",
-        how="inner",
-        suffixes=("_main", "_new"),
-    )
+    # الحل الجذري: تحويل ملف المقارنة إلى قاموس (Dictionary) مفتاحه الكود وقيمته رقم الهاتف
+    # هذا يضمن أن البحث عن الكود يتم بشكل مباشر وحصري 100% دون أي خطأ في الصفوف
+    new_dict = dict(zip(df_n["clean_id"], df_n["clean_val"]))
 
-    # استخراج الأكواد التي يوجد فيها اختلاف حقيقي بين رقم الهاتف في الملفين
-    diff_rows = merged_df[
-        (merged_df["clean_val_main"] != merged_df["clean_val_new"])
-        & (merged_df["clean_val_main"] != "")
-        & (merged_df["clean_val_new"] != "")
+    # جلب القيمة المقابلة لكل كود من الملف الرئيسي في ملف المقارنة
+    df_m["val_new"] = df_m["clean_id"].map(new_dict)
+
+    # تصفية الأكواد التي لها قيمة في الملفين لكن رقم الهاتف مختلف بينهما
+    diff_rows = df_m[
+        df_m["val_new"].notna()
+        & (df_m["val_new"] != "")
+        & (df_m["clean_val"] != "")
+        & (df_m["clean_val"] != df_m["val_new"])
     ].copy()
 
     st.session_state["diff_count"] = len(diff_rows)
@@ -143,8 +142,8 @@ if uploaded_main and uploaded_new:
     if not diff_rows.empty:
       final_result = pd.DataFrame({
           "الكود": diff_rows["clean_id"],
-          f"{selected_col} (الرئيسي)": diff_rows["clean_val_main"],
-          f"{selected_col} (المقارنة)": diff_rows["clean_val_new"],
+          f"{selected_col} (الرئيسي)": diff_rows["clean_val"],
+          f"{selected_col} (المقارنة)": diff_rows["val_new"],
       })
       st.session_state["diff_df"] = final_result
     else:
@@ -212,7 +211,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود:")
+st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود حصرياً:")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -221,6 +220,4 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info(
-      "لا توجد اختلافات مسجلة أو لم يتم العثور على تطابق للأكواد بين الملفين."
-  )
+  st.info("لا توجد اختلافات مسجلة في أرقام الهواتف بناءً على الأكواد المشتركة.")
