@@ -25,7 +25,7 @@ with col2:
 
 
 @st.cache_data
--def load_data(file1, file2):
+def load_data(file1, file2):
   df1 = pd.read_excel(file1)
   df2 = pd.read_excel(file2)
   # تنظيف أسماء الأعمدة من المسافات الزائدة
