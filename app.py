@@ -5,6 +5,31 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
+# تنسيق الجدول الاحترافي (لون أحمر للكود، خط عريض، وحجم 14)
+st.markdown(
+    """
+    <style>
+    /* تنسيق عام لجدول البيانات */
+    dataframe, th, td {
+        font-size: 14px !important;
+    }
+    /* تمليح عمود الكود باللون الأحمر والخط العريض حجم 14 */
+    td:nth-child(1) {
+        color: #dc2626 !important;
+        font-weight: bold !important;
+        font-size: 14px !important;
+    }
+    th {
+        background-color: #1e293b !important;
+        color: white !important;
+        text-align: right !important;
+        font-size: 14px !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -121,14 +146,16 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = c_main
     st.session_state["count_new"] = c_new
 
-    # بناء قاموس البحث السريع (دالة البحث الذكية للكود)
+    # حساب الفرق الحقيقي بين عددي الملفين
+    st.session_state["diff_count"] = abs(c_main - c_new)
+
+    # بناء قواميس البحث
     dict_new = dict(zip(df_n["clean_id"], df_n["clean_val"]))
     dict_main = dict(zip(df_m["clean_id"], df_m["clean_val"]))
 
-    # الفحص المتبادل: البحث عن الكودات التي تختلف في الهواتف أو غير موجودة تماماً لتثبيت الفرق الفعلي (3 كودات)
     diff_records = []
 
-    # فحص الاختلافات والمفقودات من الرئيسي إلى المقارنة
+    # فحص الكودات في الرئيسي ومقارنتها بالمقارنة
     for idx, val in dict_main.items():
       if idx in dict_new:
         if val != dict_new[idx]:
@@ -157,9 +184,6 @@ if uploaded_main and uploaded_new:
         })
 
     diff_df = pd.DataFrame(diff_records)
-
-    # ضبط إجمالي الفرق ليعكس العدد الحقيقي بدقة تامة
-    st.session_state["diff_count"] = len(diff_df)
     st.session_state["diff_df"] = diff_df
 
   except Exception as e:
