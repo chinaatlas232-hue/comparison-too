@@ -210,7 +210,37 @@ st.markdown("---")
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# استخدام أزرار Streamlit الحقيقية الموزعة على أعمدة لتفادي فتح أي متصفح خارجي نهائياً
+# حقن تصميم عصري ومميز لأزرار ستريمليت (تدرجات لونية، ظلال خفيفة، وحجم خط متناسق)
+st.markdown(
+    """
+    <style>
+    div.stButton > button {
+        width: 100%;
+        border-radius: 12px;
+        padding: 12px 8px;
+        font-weight: 700;
+        color: white !important;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: all 0.2s ease-in-out;
+    }
+    div.stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        opacity: 0.95;
+    }
+    /* تخصيص لون كل زر بناءً على ترتيبه في الأعمدة */
+    div[data-testid="column"]:nth-of-type(1) button { background: linear-gradient(135deg, #34d399, #059669) !important; }
+    div[data-testid="column"]:nth-of-type(2) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
+    div[data-testid="column"]:nth-of-type(3) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; }
+    div[data-testid="column"]:nth-of-type(4) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
+    div[data-testid="column"]:nth-of-type(5) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; }
+    div[data-testid="column"]:nth-of-type(6) button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
 
 with col_b1:
@@ -251,6 +281,7 @@ with col_b6:
     st.session_state["active_filter"] = "فروقات العنوان"
 
 if st.session_state["active_filter"] != "الكل":
+  st.markdown("<br>", unsafe_allow_html=True)
   if st.button(
       f"🔄 إلغاء الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
       " الكل",
