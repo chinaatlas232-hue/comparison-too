@@ -34,7 +34,7 @@ with st.sidebar:
 
 st.markdown(
     """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الملفات الذكية (فلتر الكود حصراً)</h2>
+    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الملفات الذكية (فلتر الكود الشامل)</h2>
     """,
     unsafe_allow_html=True,
 )
@@ -120,32 +120,56 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # تحويل ملف المقارنة إلى قاموس (Dictionary) مفتاحه الكود حصراً للبحث المباشر
-    new_dict = dict(zip(df_n["clean_id"], df_n["clean_val"]))
+    # دمج البيانات بناءً على الكود لمعالجة الاختلافات والمفقودات معاً
+    merged = pd.merge(
+        df_m[["clean_id", "clean_val"]],
+        df_n[["clean_id", "clean_val"]],
+        on="clean_id",
+        how="outer",
+        suffixes=("_main", "_new"),
+    )
 
-    # جلب القيمة المقابلة لكل كود
-    df_m["val_new"] = df_m["clean_id"].map(new_dict)
+    # تصنيف الاختلافات:
+    # 1. كود موجود في الرئيسي وغير موجود في المقارنة
+    # 2. كود موجود في المقارنة وغير موجود في الرئيسي
+    # 3. كود موجود في الملفين لكن رقم الهاتف مختلف
+    diff_mask = (
+        merged["clean_val_main"].isna()
+        | (merged["clean_val_main"] == "")
+        | merged["clean_val_new"].isna()
+        | (merged["clean_val_new"] == "")
+        | (merged["clean_val_main"] != merged["clean_val_new"])
+    )
 
-    # استخراج الاختلافات بدقة مطلقة بناءً على الكود
-    diff_rows = df_m[
-        df_m["val_new"].notna()
-        & (df_m["val_new"] != "")
-        & (df_m["clean_val"] != "")
-        & (df_m["clean_val"] != df_m["val_new"])
-    ].copy()
+    diff_rows = merged[diff_mask].copy()
 
     st.session_state["diff_count"] = len(diff_rows)
 
     if not diff_rows.empty:
+      def get_status(row):
+        if pd.isna(row["clean_val_main"]) or row["clean_val_main"] == "":
+          return "موجود في المقارنة فقط (غير موجود بالرئيسي)"
+        elif pd.isna(row["clean_val_new"]) or row["clean_val_new"] == "":
+          return "موجود في الرئيسي فقط (غير موجود بالمقارنة)"
+        else:
+          return "اختلاف في رقم الهاتف"
+
+      diff_rows["حالة_الاختلاف"] = diff_rows.apply(get_status, axis=1)
+
       final_result = pd.DataFrame({
           "الكود": diff_rows["clean_id"],
-          f"{phone_col} (الرئيسي)": diff_rows["clean_val"],
-          f"{phone_col} (المقارنة)": diff_rows["val_new"],
+          f"{phone_col} (الرئيسي)": diff_rows["clean_val_main"].fillna(
+              "غير متوفر"
+          ),
+          f"{phone_col} (المقارنة)": diff_rows["clean_val_new"].fillna(
+              "غير متوفر"
+          ),
+          "نوع الاختلاف": diff_rows["حالة_الاختلاف"],
       })
       st.session_state["diff_df"] = final_result
     else:
       st.session_state["diff_df"] = pd.DataFrame(
-          columns=["الكود", "الرئيسي", "المقارنة"]
+          columns=["الكود", "الرئيسي", "المقارنة", "نوع الاختلاف"]
       )
 
   except Exception as e:
@@ -208,7 +232,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات (فلتر الكود حصراً):")
+st.subheader("📋 جدول الاختلافات الشامل (أكواد مختلفة + أكواد غير متطابقة):")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -217,4 +241,4 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("لا توجد اختلافات مسجلة أو لم يتم العثور على تطابق للأكواد.")
+  st.info("لا توجد اختلافات مسجلة.")
