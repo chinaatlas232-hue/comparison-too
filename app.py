@@ -40,7 +40,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# رفع الملفات مع الحفاظ على حالتها في الذاكرة المؤقتة
 col1, col2 = st.columns(2)
 with col1:
     uploaded_main = st.file_uploader(
@@ -65,14 +64,13 @@ def load_data(file1, file2):
   return df1, df2
 
 
-# المعالجة التلقائية وفحص النتائج فور رفع الملفات
 if uploaded_main and uploaded_new:
   try:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود تلقائياً
+    # تحديد عمود الكود وعمود المقارنة تلقائياً
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         common_cols[0],
@@ -111,7 +109,7 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # دمج البيانات بناءً على الكود المشترك لضمان تطابق الأسطر تماماً
+    # ربط دقيق يعتمد على تطابق الكود (clean_id) حصرياً
     merged_df = pd.merge(
         df_m[["clean_id", "clean_val"]],
         df_n[["clean_id", "clean_val"]],
@@ -120,7 +118,7 @@ if uploaded_main and uploaded_new:
         suffixes=("_main", "_new"),
     )
 
-    # تصفية الاختلافات الحقيقية فقط (الكود موجود في الملفين لكن القيمة مختلفة)
+    # فلترة الاختلافات الحقيقية فقط (القيمتين موجودتين وغير متطابقتين لنفس الكود)
     diff_rows = merged_df[
         (merged_df["clean_val_main"] != merged_df["clean_val_new"])
         & (merged_df["clean_val_main"] != "")
@@ -130,10 +128,16 @@ if uploaded_main and uploaded_new:
     st.session_state["diff_count"] = len(diff_rows)
 
     if not diff_rows.empty:
-      diff_rows.columns = ["الكود", f"{selected_col} (الرئيسي)", f"{selected_col} (المقارنة)"]
+      diff_rows.columns = [
+          "الكود",
+          f"{selected_col} (الرئيسي)",
+          f"{selected_col} (المقارنة)",
+      ]
       st.session_state["diff_df"] = diff_rows
     else:
-      st.session_state["diff_df"] = pd.DataFrame(columns=["الكود", "الرئيسي", "المقارنة"])
+      st.session_state["diff_df"] = pd.DataFrame(
+          columns=["الكود", "الرئيسي", "المقارنة"]
+      )
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
@@ -195,7 +199,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات الواضحة:")
+st.subheader("📋 جدول الاختلافات الدقيقة:")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -204,7 +208,4 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info(
-      "الرجاء رفع الملفات واختيار العمود المطلوب من القائمة أعلاه لعرض"
-      " النتائج."
-  )
+  st.info("لا توجد اختلافات مسجلة أو لم يتم اختيار الأعمدة بشكل صحيح.")
