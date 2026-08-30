@@ -91,7 +91,7 @@ if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
 
-@st.cache_data
+# تم إلغاء الكاش هنا (cache_data) لضمان قراءة التعديلات الجديدة مباشرة من السيرفر فور حدوثها
 def load_data(file1, file2):
   df1 = pd.read_excel(file1, sheet_name=0)
   df2 = pd.read_excel(file2, sheet_name=0)
