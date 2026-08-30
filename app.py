@@ -121,15 +121,13 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = c_main
     st.session_state["count_new"] = c_new
 
-    # حساب الفرق الإجمالي بين عددي الملفين
-    st.session_state["diff_count"] = abs(c_main - c_new)
-
     # بناء قواميس البحث
     dict_new = dict(zip(df_n["clean_id"], df_n["clean_val"]))
     dict_main = dict(zip(df_m["clean_id"], df_m["clean_val"]))
 
     diff_records = []
-    phone_diff_count = 0  # عداد فروقات أرقام الهواتف
+    phone_diff_count = 0  # فروقات أرقام الهواتف (اختلاف رقم الهاتف)
+    code_diff_count = 0  # فروقات الكود (موجود في الرئيسي فقط + موجود في المقارنة فقط)
 
     # فحص الكودات في الرئيسي ومقارنتها بالمقارنة
     for idx, val in dict_main.items():
@@ -143,6 +141,7 @@ if uploaded_main and uploaded_new:
               "الحالة": "اختلاف رقم الهاتف",
           })
       else:
+        code_diff_count += 1
         diff_records.append({
             "الكود": idx,
             f"{phone_col} (الرئيسي)": val,
@@ -153,6 +152,7 @@ if uploaded_main and uploaded_new:
     # فحص الكودات الموجودة في المقارنة وليست في الرئيسي
     for idx, val in dict_new.items():
       if idx not in dict_main:
+        code_diff_count += 1
         diff_records.append({
             "الكود": idx,
             f"{phone_col} (الرئيسي)": "غير موجود",
@@ -160,7 +160,11 @@ if uploaded_main and uploaded_new:
             "الحالة": "موجود في المقارنة فقط",
         })
 
+    # الفرق الإجمالي = مجموع فروقات الكود + فروقات أرقام الهاتف
+    st.session_state["diff_count"] = code_diff_count + phone_diff_count
+    st.session_state["code_diff_count"] = code_diff_count
     st.session_state["phone_diff_count"] = phone_diff_count
+
     diff_df = pd.DataFrame(diff_records)
 
     # تطبيق التنسيق مباشرة كـ HTML لضمان اللون الأحمر والخط العريض وحجم 14 للكود
@@ -180,6 +184,7 @@ if uploaded_main and uploaded_new:
 c_main = st.session_state.get("count_main", 0)
 c_new = st.session_state.get("count_new", 0)
 c_diff = st.session_state.get("diff_count", 0)
+c_code_diff = st.session_state.get("code_diff_count", 0)
 c_phone_diff = st.session_state.get("phone_diff_count", 0)
 
 st.markdown("---")
@@ -195,16 +200,17 @@ st.markdown(
     .metric-card-1 {{ background: linear-gradient(135deg, #10b981, #047857); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-card-2 {{ background: linear-gradient(135deg, #f97316, #c2410c); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-card-3 {{ background: {diff_bg}; padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-4 {{ background: linear-gradient(135deg, #f472b6, #db2777); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-title {{ font-size: 15px; font-weight: bold; margin-bottom: 8px; }}
+    .metric-card-4 {{ background: linear-gradient(135deg, #8b5cf6, #6d28d9); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-card-5 {{ background: linear-gradient(135deg, #f472b6, #db2777); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-title {{ font-size: 14px; font-weight: bold; margin-bottom: 8px; }}
     .metric-value {{ font-size: 26px; font-weight: bold; }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-# عرض 4 مربعات متناسقة بعرض الشاشة
-col1, col2, col3, col4 = st.columns(4)
+# عرض 5 مربعات متناسقة بعرض الشاشة
+col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
   st.markdown(
       f"""
@@ -239,6 +245,16 @@ with col4:
   st.markdown(
       f"""
         <div class="metric-card-4">
+            <div class="metric-title">🔑 فروقات الكود</div>
+            <div class="metric-value">{c_code_diff}</div>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
+with col5:
+  st.markdown(
+      f"""
+        <div class="metric-card-5">
             <div class="metric-title">📞 فروقات رقم الهاتف</div>
             <div class="metric-value">{c_phone_diff}</div>
         </div>
@@ -255,13 +271,12 @@ if (
 ):
   df_display = st.session_state["diff_df"].copy()
 
-  # بناء الهيكل اليدوي للجدول مع إضافة عمود التسلسل كأول عمود
+  # بناء الهيكل اليدوي للجدول مع إضافة عمود التسلسل كأول عمود والتظلون الوردي الخفيف لفروقات الهاتف
   rows_html = ""
   for i, (_, row) in enumerate(df_display.iterrows(), 1):
     is_phone_diff = str(row["الحالة"]).strip() == "اختلاف رقم الهاتف"
     row_bg = "background-color: #fdf2f8;" if is_phone_diff else ""
 
-    # دمج عمود التسلسل مع بقية الأعمدة
     cells_html = (
         f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
         f' solid #e5e7eb; font-size: 14px; {row_bg} font-weight:'
@@ -272,7 +287,6 @@ if (
 
     rows_html += f"<tr>{cells_html}</tr>"
 
-  # تجهيز أسماء الأعمدة مع إضافة عمود "التسلسل"
   columns_list = ["التسلسل"] + list(df_display.columns)
   headers_html = "".join(
       f'<th style="background-color: #2563eb; color: white; padding: 12px; text-align: center; font-size: 15px;">{col}</th>'
