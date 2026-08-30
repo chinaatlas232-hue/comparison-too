@@ -5,10 +5,9 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# زر المسح اليدوي في القائمة الجانبية (باللون الأحمر)
+# زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
-
   st.markdown(
       """
         <style>
@@ -70,7 +69,7 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # 1. البحث التلقائي عن عمود الكود للربط الأساسي
+    # تحديد عمود الكود تلقائياً للبحث والربط الحصري
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
@@ -78,12 +77,11 @@ if uploaded_main and uploaded_new:
     if not code_col:
       code_col = common_cols[0]
 
-    # استبعاد عمود الكود من قائمة اختيار عمود المقارنة لكي يظهر عمود الهاتف حصراً
+    # استبعاد عمود الكود من قائمة المقارنة لعرض عمود الهاتف فقط
     comparison_options = [c for c in common_cols if c != code_col]
     if not comparison_options:
       comparison_options = common_cols
 
-    # تحديد عمود الهاتف افتراضياً إن وجد
     default_phone_idx = 0
     for i, col in enumerate(comparison_options):
       if "هاتف" in str(col) or "phone" in str(col).lower():
@@ -91,13 +89,12 @@ if uploaded_main and uploaded_new:
         break
 
     st.markdown(
-        f"📌 **تم استخدام عمود الأساس للربط:** `{code_col}`",
+        f"📌 **الاعتماد في البحث والربط حصراً على عمود الكود:** `{code_col}`",
         unsafe_allow_html=True,
     )
 
-    # قائمة منسدلة لاختيار عمود المقارنة (الهاتف أو غيره)
     selected_col = st.selectbox(
-        "🔑 اختر عمود رقم الهاتف للمقارنة بين الملفين:",
+        "🔑 اختر عمود رقم الهاتف للمقارنة:",
         comparison_options,
         index=default_phone_idx,
     )
@@ -115,6 +112,7 @@ if uploaded_main and uploaded_new:
     df_m = df_main.copy()
     df_n = df_new.copy()
 
+    # تجهيز مفتاح الكود للبحث المطرّق
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
@@ -124,16 +122,16 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # دمج الملفين بناءً على تطابق الكود حصرياً
+    # دمج الملفين حصراً بناءً على تطابق الكود (Inner Join عبر clean_id)
     merged_df = pd.merge(
-        df_m[[code_col, "clean_id", "clean_val"]],
+        df_m[["clean_id", "clean_val"]],
         df_n[["clean_id", "clean_val"]],
         on="clean_id",
         how="inner",
         suffixes=("_main", "_new"),
     )
 
-    # فلترة الصفوف التي اختلف فيها رقم الهاتف بين الملفين
+    # استخراج الأكواد التي يوجد فيها اختلاف حقيقي بين رقم الهاتف في الملفين
     diff_rows = merged_df[
         (merged_df["clean_val_main"] != merged_df["clean_val_new"])
         & (merged_df["clean_val_main"] != "")
@@ -144,7 +142,7 @@ if uploaded_main and uploaded_new:
 
     if not diff_rows.empty:
       final_result = pd.DataFrame({
-          "الكود": diff_rows[code_col],
+          "الكود": diff_rows["clean_id"],
           f"{selected_col} (الرئيسي)": diff_rows["clean_val_main"],
           f"{selected_col} (المقارنة)": diff_rows["clean_val_new"],
       })
@@ -214,7 +212,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات في أرقام الهواتف:")
+st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود:")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -223,4 +221,6 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("لا توجد اختلافات مسجلة في أرقام الهواتف بناءً على الأكواد المشتركة.")
+  st.info(
+      "لا توجد اختلافات مسجلة أو لم يتم العثور على تطابق للأكواد بين الملفين."
+  )
