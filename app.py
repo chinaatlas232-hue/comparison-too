@@ -213,7 +213,7 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تسيق الأزرار الملونة الكبيرة
+# تنسيق الأزرار مع خلفيات ملونة واضحة وأصوص بيضاء بارزة
 st.markdown(
     """
     <style>
@@ -227,6 +227,10 @@ st.markdown(
         border: none !important;
         box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
         transition: transform 0.1s ease !important;
+    }
+    div.stButton > button p {
+        color: white !important;
+        font-weight: bold !important;
     }
     div.stButton > button:hover {
         transform: scale(1.02) !important;
