@@ -70,7 +70,7 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود وعمود المقارنة تلقائياً
+    # تحديد عمود الكود تلقائياً
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         common_cols[0],
@@ -83,7 +83,7 @@ if uploaded_main and uploaded_new:
         break
 
     selected_col = st.selectbox(
-        "🔑 اختر عمود المقارنة الأساسي (الكود أو رقم الهاتف):",
+        "🔑 اختر عمود المقارنة الأساسي (رقم الهاتف):",
         common_cols,
         index=default_idx,
     )
@@ -95,6 +95,7 @@ if uploaded_main and uploaded_new:
           .str.strip()
           .fillna("")
           .replace("nan", "")
+          .replace("None", "")
       )
 
     df_m = df_main.copy()
@@ -109,16 +110,16 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # ربط دقيق يعتمد على تطابق الكود (clean_id) حصرياً
+    # دمج الملفين بناءً على تطابق الكود حصرياً
     merged_df = pd.merge(
-        df_m[["clean_id", "clean_val"]],
+        df_m[[code_col, "clean_id", "clean_val"]],
         df_n[["clean_id", "clean_val"]],
         on="clean_id",
         how="inner",
         suffixes=("_main", "_new"),
     )
 
-    # فلترة الاختلافات الحقيقية فقط (القيمتين موجودتين وغير متطابقتين لنفس الكود)
+    # فلترة الاختلافات الحقيقية فقط بين القيمتين لنفس الكود
     diff_rows = merged_df[
         (merged_df["clean_val_main"] != merged_df["clean_val_new"])
         & (merged_df["clean_val_main"] != "")
@@ -128,12 +129,12 @@ if uploaded_main and uploaded_new:
     st.session_state["diff_count"] = len(diff_rows)
 
     if not diff_rows.empty:
-      diff_rows.columns = [
-          "الكود",
-          f"{selected_col} (الرئيسي)",
-          f"{selected_col} (المقارنة)",
-      ]
-      st.session_state["diff_df"] = diff_rows
+      final_result = pd.DataFrame({
+          "الكود": diff_rows[code_col],
+          f"{selected_col} (الرئيسي)": diff_rows["clean_val_main"],
+          f"{selected_col} (المقارنة)": diff_rows["clean_val_new"],
+      })
+      st.session_state["diff_df"] = final_result
     else:
       st.session_state["diff_df"] = pd.DataFrame(
           columns=["الكود", "الرئيسي", "المقارنة"]
@@ -208,4 +209,4 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("لا توجد اختلافات مسجلة أو لم يتم اختيار الأعمدة بشكل صحيح.")
+  st.info("لا توجد اختلافات مسجلة في أرقام الهواتف أو أن الملفات متطابقة.")
