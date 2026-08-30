@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# إنشاء مجلد لحفظ الملفات على السيرفر لضمان عدم ضياعها
+# إنشاء مجلد لحفظ الملفات على السيرفر لضمان عدم ضياعها وثباتها دائماً
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -75,7 +75,7 @@ with col2:
     with open(new_file_path, "wb") as f:
       f.write(uploaded_new.getbuffer())
 
-# التحقق من وجود الملفات المحفوظة على السيرفر
+# الاعتماد الأساسي على الملفات المحفوظة في مجلد السيرفر لضمان ثباتها
 active_main = (
     main_file_path
     if os.path.exists(main_file_path)
