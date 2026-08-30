@@ -232,13 +232,32 @@ with col3:
 
 st.markdown("---")
 st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود:")
+
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
 ):
-  st.write(
-      st.session_state["diff_df"].to_html(escape=False, index=False),
-      unsafe_allow_html=True,
+  # تصميم الجدول ليكون بعرض الشاشة بالكامل، برأس أزرق وكتابة بيضاء
+  table_html = (
+      st.session_state["diff_df"]
+      .to_html(escape=False, index=False)
+      .replace(
+          "<table",
+          '<table style="width: 100%; border-collapse: collapse; direction: rtl;'
+          ' font-family: sans-serif;"',
+      )
+      .replace(
+          "<th>",
+          '<th style="background-color: #2563eb; color: white; padding: 12px;'
+          ' text-align: center; font-size: 15px;">',
+      )
+      .replace(
+          "<td>",
+          '<td style="padding: 10px; text-align: center; border-bottom: 1px'
+          ' solid #e5e7eb; font-size: 14px;">',
+      )
   )
+
+  st.markdown(table_html, unsafe_allow_html=True)
 else:
   st.info("لا توجد اختلافات بين الملفين.")
