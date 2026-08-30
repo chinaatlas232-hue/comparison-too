@@ -45,7 +45,7 @@ def load_data(file1, file2):
   return df1, df2
 
 
-# المعالجة التلقائية وفحص النتائج فور رفع الملفات دون الحاجة لأزرار إضافية
+# المعالجة التلقائية وفحص النتائج فور رفع الملفات
 if uploaded_main and uploaded_new:
   try:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
@@ -94,15 +94,21 @@ c_diff = st.session_state.get("diff_count", 0)
 
 st.markdown("---")
 
-# تصميم المربعات الثلاثة في أعلى الصفحة
+# تحديد لون المربع الثالث بناءً على وجود فرق أو عدمه
+if c_diff > 0:
+  diff_bg = "linear-gradient(135deg, #ef4444, #b91c1c)"  # أحمر عند وجود فرق
+else:
+  diff_bg = "linear-gradient(135deg, #4b5563, #1f2937)"  # رصاصي غامق إذا لم يوجد فرق
+
+# تصميم المربعات الثلاثة بالألوان المطلوبة
 st.markdown(
-    """
+    f"""
     <style>
-    .metric-card-1 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .metric-card-2 { background: linear-gradient(135deg, #8b5cf6, #6d28d9); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .metric-card-3 { background: linear-gradient(135deg, #f59e0b, #d97706); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    .metric-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
-    .metric-value { font-size: 28px; font-weight: bold; }
+    .metric-card-1 {{ background: linear-gradient(135deg, #10b981, #047857); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-card-2 {{ background: linear-gradient(135deg, #f97316, #c2410c); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-card-3 {{ background: {diff_bg}; padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-title {{ font-size: 16px; font-weight: bold; margin-bottom: 8px; }}
+    .metric-value {{ font-size: 28px; font-weight: bold; }}
     </style>
     """,
     unsafe_allow_html=True,
