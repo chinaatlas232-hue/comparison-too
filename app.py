@@ -7,7 +7,7 @@ st.set_page_config(
 
 st.markdown(
     """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة بيانات العناوين وأرقام الهواتف الفورية</h2>
+    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة البيانات بناءً على الكود حصراً</h2>
     """,
     unsafe_allow_html=True,
 )
@@ -38,20 +38,24 @@ if uploaded_main and uploaded_new:
 
     st.markdown("---")
 
-    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
-    default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
-
-    id_col = st.selectbox(
-        "🔑 اختر عمود الكود المشترك:", common_cols, index=default_id_idx
-    )
-
     if st.button("🚀 ابدأ المقارنة وعرض الاختلافات فوراً", use_container_width=True):
+      # البحث التلقائي عن عمود الكود في كلا الملفين
+      def find_id_col(df):
+        for col in df.columns:
+          if "كود" in str(col).lower() or "id" in str(col).lower():
+            return col
+        return df.columns[0]  # افتراض العمود الأول إذا لم يوجد
+
+      id_main = find_id_col(df_main)
+      id_new = find_id_col(df_new)
+
+      # البحث التلقائي عن أعمدة الهاتف والعنوان مقارنةً بأسماء الأعمدة الثابتة
       def find_best_col(df, keywords):
         for col in df.columns:
           for kw in keywords:
             if kw in str(col).lower():
               return col
-        return df.columns[1]
+        return df.columns[1] if len(df.columns) > 1 else df.columns[0]
 
       phone_main = find_best_col(df_main, ["هاتف", "phone", "جوال", "رقم"])
       addr_main = find_best_col(
@@ -63,8 +67,9 @@ if uploaded_main and uploaded_new:
       )
       addr_new = addr_main if addr_main in df_new.columns else df_new.columns[2]
 
-      m_df = df_main[[id_col, phone_main, addr_main]].copy()
-      n_df = df_new[[id_col, phone_new, addr_new]].copy()
+      # تجهيز البيانات بناءً على الكود حصراً
+      m_df = df_main[[id_main, phone_main, addr_main]].copy()
+      n_df = df_new[[id_new, phone_new, addr_new]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
@@ -85,6 +90,7 @@ if uploaded_main and uploaded_new:
       m_df["address"] = clean_series(m_df["address"])
       n_df["address"] = clean_series(n_df["address"])
 
+      # الدمج والمقارنة حصراً بناءً على الكود (on="id")
       merged = pd.merge(
           m_df, n_df, on="id", how="inner", suffixes=("_main", "_new")
       )
@@ -96,12 +102,12 @@ if uploaded_main and uploaded_new:
       diff_df = merged[merged["phone_diff"] | merged["address_diff"]].copy()
       matched_count = total_common - len(diff_df)
 
-      st.success("تمت المقارنة بنجاح!")
+      st.success("تمت المقارنة بنجاح بناءً على عمود الكود حصراً!")
 
       col1, col2, col3 = st.columns(3)
-      col1.metric("📦 إجمالي السجلات المشتركة", total_common)
-      col2.metric("✅ السجلات المتطابقة تماماً", matched_count)
-      col3.metric("⚠️ السجلات التي بها اختلافات", len(diff_df))
+      col1.metric("📦 إجمالي الأكواد المشتركة", total_common)
+      col2.metric("✅ الأكواد المتطابقة تماماً", matched_count)
+      col3.metric("⚠️ الأكواد التي بها اختلافات", len(diff_df))
 
       st.markdown("---")
 
@@ -135,7 +141,6 @@ if uploaded_main and uploaded_new:
             )
           st.markdown("---")
 
-        # زر تحميل التقرير نهائياً
         csv = diff_df.to_csv(index=False).encode("utf-8-sig")
         st.download_button(
             label="📥 تحميل تقرير الاختلافات كملف CSV",
