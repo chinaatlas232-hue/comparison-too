@@ -5,31 +5,6 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تنسيق الجدول الاحترافي (لون أحمر للكود، خط عريض، وحجم 14)
-st.markdown(
-    """
-    <style>
-    /* تنسيق عام لجدول البيانات */
-    dataframe, th, td {
-        font-size: 14px !important;
-    }
-    /* تمليح عمود الكود باللون الأحمر والخط العريض حجم 14 */
-    td:nth-child(1) {
-        color: #dc2626 !important;
-        font-weight: bold !important;
-        font-size: 14px !important;
-    }
-    th {
-        background-color: #1e293b !important;
-        color: white !important;
-        text-align: right !important;
-        font-size: 14px !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 # زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -184,6 +159,16 @@ if uploaded_main and uploaded_new:
         })
 
     diff_df = pd.DataFrame(diff_records)
+
+    # تطبيق التنسيق مباشرة كـ HTML لضمان اللون الأحمر والخط العريض وحجم 14
+    if not diff_df.empty and "الكود" in diff_df.columns:
+      diff_df["الكود"] = diff_df["الكود"].apply(
+          lambda x: (
+              f"<span style='color: #dc2626; font-weight: bold; font-size:"
+              f" 14px;'>{x}</span>"
+          )
+      )
+
     st.session_state["diff_df"] = diff_df
 
   except Exception as e:
@@ -251,8 +236,9 @@ if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
 ):
-  st.dataframe(
-      st.session_state["diff_df"], use_container_width=True, hide_index=True
+  st.write(
+      st.session_state["diff_df"].to_html(escape=False, index=False),
+      unsafe_allow_html=True,
   )
 else:
   st.info("لا توجد اختلافات بين الملفين.")
