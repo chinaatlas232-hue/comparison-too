@@ -236,34 +236,35 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
 
-# تصميم الألوان الحديثة والمترجة (Soft & Modern Gradients)
+# تصميم الألوان الحديثة والمدرجة خصيصاً لتجاوز أي قيم افتراضية سابقة
 st.markdown(
     """
     <style>
-    div.stButton > button[data-baseweb="button"] {
-        width: 100%;
-        border-radius: 12px;
-        color: white;
-        font-weight: bold;
-        border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        padding: 16px 10px;
-        font-size: 14px;
-        letter-spacing: 0.3px;
+    /* تطبيق الألوان المباشرة والمدرجة على أزرار الأعمدة الستة */
+    div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] { background: linear-gradient(135deg, #34d399, #059669) !important; color: white !important; }
+    div[data-testid="column"]:nth-of-type(2) button[kind="secondary"] { background: linear-gradient(135deg, #fb923c, #ea580c) !important; color: white !important; }
+    div[data-testid="column"]:nth-of-type(3) button[kind="secondary"] { background: linear-gradient(135deg, #f87171, #dc2626) !important; color: white !important; }
+    div[data-testid="column"]:nth-of-type(4) button[kind="secondary"] { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; color: white !important; }
+    div[data-testid="column"]:nth-of-type(5) button[kind="secondary"] { background: linear-gradient(135deg, #f472b6, #db2777) !important; color: white !important; }
+    div[data-testid="column"]:nth-of-type(6) button[kind="secondary"] { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; color: white !important; }
+
+    /* قاعدة عامة لضمان شكل الأزرار وتناسقها */
+    div.stButton > button {
+        width: 100% !important;
+        border-radius: 12px !important;
+        font-weight: bold !important;
+        border: none !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
+        padding: 16px 10px !important;
+        font-size: 14px !important;
+        letter-spacing: 0.3px !important;
     }
-    /* ألوان هادئة، متدرجة وعصرية غير صاخبة */
-    div[data-testid="column"]:nth-of-type(1) button { background: linear-gradient(135deg, #34d399, #059669) !important; } /* أخضر هادئ */
-    div[data-testid="column"]:nth-of-type(2) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; } /* برتقالي دافئ */
-    div[data-testid="column"]:nth-of-type(3) button { background: linear-gradient(135deg, #f87171, #dc2626) !important; } /* أحمر متدرج ناعم للإجمالي */
-    div[data-testid="column"]:nth-of-type(4) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; } /* بنفسجي فاتح مريح */
-    div[data-testid="column"]:nth-of-type(5) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; } /* وردي أنيق */
-    div[data-testid="column"]:nth-of-type(6) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; } /* سماوي هادئ */
     
     div.stButton > button:hover {
-        opacity: 0.92;
+        opacity: 0.92 !important;
         transform: translateY(-2px);
         transition: all 0.25s ease;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12) !important;
     }
     </style>
     """,
