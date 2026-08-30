@@ -244,7 +244,7 @@ if (
             f"{phone_col} (المقارنة)": dict_new_phone[idx],
             f"{address_col} (الرئيسي)": "غير موجود",
             f"{address_col} (المقارنة)": dict_new_addr[idx],
-            "الحالة": "موجود في المقارنة فقط",
+            "الحالة": "الكود غير موجود بقاعدة البيانات السابقة",
         })
 
     c_diff = code_diff_count + phone_diff_count + address_diff_count
@@ -354,11 +354,12 @@ if not diff_df.empty:
     ]
   elif current_filter == "المقارنة":
     df_display = df_display[
-        df_display["الحالة"].str.contains("موجود في المقارنة فقط", na=False)
+        df_display["الحالة"].str.contains(
+            "الكود غير موجود بقاعدة البيانات السابقة", na=False
+        )
     ]
 
   if not df_display.empty:
-    # زر تصدير الجدول الحالي (حسب الفلتر) إلى ملف Excel
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
       df_display.to_excel(writer, index=False, sheet_name="الاختلافات")
