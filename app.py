@@ -5,9 +5,30 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# زر المسح اليدوي في القائمة الجانبية
+# زر المسح اليدوي في القائمة الجانبية (باللون الأحمر)
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
+
+  # تخصيص لون زر المسح للأحمر
+  st.markdown(
+      """
+        <style>
+        div.stButton > button:first-child {
+            background-color: #ef4444;
+            color: white;
+            border-radius: 8px;
+            border: none;
+            font-weight: bold;
+        }
+        div.stButton > button:first-child:hover {
+            background-color: #dc2626;
+            color: white;
+        }
+        </style>
+        """,
+      unsafe_allow_html=True,
+  )
+
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
     for key in list(st.session_state.keys()):
       del st.session_state[key]
