@@ -103,7 +103,6 @@ if uploaded_main and uploaded_new:
         None,
     )
     if not address_col:
-      # اختيار عمود آخر إن وجد
       remaining_cols = [
           c for c in common_cols if c != code_col and c != phone_col
       ]
@@ -128,7 +127,6 @@ if uploaded_main and uploaded_new:
     df_m = df_main.copy()
     df_n = df_new.copy()
 
-    # تنظيف البيانات بدقة
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
@@ -143,10 +141,8 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = c_main
     st.session_state["count_new"] = c_new
 
-    # بناء قواميس البحث
     dict_new_phone = dict(zip(df_n["clean_id"], df_n["clean_phone"]))
     dict_main_phone = dict(zip(df_m["clean_id"], df_m["clean_phone"]))
-
     dict_new_addr = dict(zip(df_n["clean_id"], df_n["clean_addr"]))
     dict_main_addr = dict(zip(df_m["clean_id"], df_m["clean_addr"]))
 
@@ -155,7 +151,6 @@ if uploaded_main and uploaded_new:
     phone_diff_count = 0
     address_diff_count = 0
 
-    # فحص الكودات في الرئيسي ومقارنتها بالمقارنة
     all_ids = set(dict_main_phone.keys()).union(set(dict_new_phone.keys()))
 
     for idx in all_ids:
@@ -177,21 +172,21 @@ if uploaded_main and uploaded_new:
           if has_addr_diff:
             address_diff_count += 1
 
+          # تصنيف حالات الاختلاف بدقة لربطها بأزرار الفلترة
+          if has_phone_diff and has_addr_diff:
+            status_label = "اختلاف هاتف وعنوان"
+          elif has_phone_diff:
+            status_label = "اختلاف رقم الهاتف"
+          else:
+            status_label = "اختلاف العنوان"
+
           diff_records.append({
               "الكود": idx,
               f"{phone_col} (الرئيسي)": p_main,
               f"{phone_col} (المقارنة)": p_new,
               f"{address_col} (الرئيسي)": a_main,
               f"{address_col} (المقارنة)": a_new,
-              "الحالة": (
-                  "اختلاف هاتف وعنوان"
-                  if (has_phone_diff and has_addr_diff)
-                  else (
-                      "اختلاف رقم الهاتف"
-                      if has_phone_diff
-                      else "اختلاف العنوان"
-                  )
-              ),
+              "الحالة": status_label,
           })
       elif in_main and not in_new:
         code_diff_count += 1
@@ -223,6 +218,7 @@ if uploaded_main and uploaded_new:
     diff_df = pd.DataFrame(diff_records)
 
     if not diff_df.empty and "الكود" in diff_df.columns:
+      diff_df["الكود_raw"] = diff_df["الكود"]
       diff_df["الكود"] = diff_df["الكود"].apply(
           lambda x: (
               f"<span style='color: #dc2626; font-weight: bold; font-size:"
@@ -252,12 +248,6 @@ else:
 st.markdown(
     f"""
     <style>
-    .metric-card-1 {{ background: linear-gradient(135deg, #10b981, #047857); padding: 15px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-2 {{ background: linear-gradient(135deg, #f97316, #c2410c); padding: 15px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-3 {{ background: {diff_bg}; padding: 15px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-4 {{ background: linear-gradient(135deg, #8b5cf6, #6d28d9); padding: 15px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-5 {{ background: linear-gradient(135deg, #f472b6, #db2777); padding: 15px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-card-6 {{ background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 15px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-title {{ font-size: 13px; font-weight: bold; margin-bottom: 6px; }}
     .metric-value {{ font-size: 22px; font-weight: bold; }}
     </style>
@@ -265,71 +255,70 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# عرض 6 مربعات متناسقة بعرض الشاشة
+# التهيئة الافتراضية لفلتر الجدول
+if "active_filter" not in st.session_state:
+  st.session_state["active_filter"] = "الكل"
+
+# تصميم المربعات كأزرار تفاعلية لتغيير الفلتر
 col1, col2, col3, col4, col5, col6 = st.columns(6)
+
 with col1:
-  st.markdown(
-      f"""
-        <div class="metric-card-1">
-            <div class="metric-title">📦 الرئيسي</div>
-            <div class="metric-value">{c_main}</div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
+  if st.button(
+      f"📦 الرئيسي\n\n{c_main}",
+      use_container_width=True,
+      key="btn_main",
+  ):
+    st.session_state["active_filter"] = "الكل"
 with col2:
-  st.markdown(
-      f"""
-        <div class="metric-card-2">
-            <div class="metric-title">📁 المقارنة</div>
-            <div class="metric-value">{c_new}</div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
+  if st.button(
+      f"📁 المقارنة\n\n{c_new}",
+      use_container_width=True,
+      key="btn_new",
+  ):
+    st.session_state["active_filter"] = "الكل"
 with col3:
-  st.markdown(
-      f"""
-        <div class="metric-card-3">
-            <div class="metric-title">⚠️ الإجمالي</div>
-            <div class="metric-value">{c_diff}</div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
+  if st.button(
+      f"⚠️ الإجمالي\n\n{c_diff}",
+      use_container_width=True,
+      key="btn_total",
+  ):
+    st.session_state["active_filter"] = "الكل"
 with col4:
-  st.markdown(
-      f"""
-        <div class="metric-card-4">
-            <div class="metric-title">🔑 فروقات الكود</div>
-            <div class="metric-value">{c_code_diff}</div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
+  if st.button(
+      f"🔑 فروقات الكود\n\n{c_code_diff}",
+      use_container_width=True,
+      key="btn_code",
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
 with col5:
-  st.markdown(
-      f"""
-        <div class="metric-card-5">
-            <div class="metric-title">📞 فروقات الهاتف</div>
-            <div class="metric-value">{c_phone_diff}</div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
+  if st.button(
+      f"📞 فروقات الهاتف\n\n{c_phone_diff}",
+      use_container_width=True,
+      key="btn_phone",
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
 with col6:
-  st.markdown(
-      f"""
-        <div class="metric-card-6">
-            <div class="metric-title">🏠 فروقات العنوان</div>
-            <div class="metric-value">{c_address_diff}</div>
-        </div>
-        """,
-      unsafe_allow_html=True,
-  )
+  if st.button(
+      f"🏠 فروقات العنوان\n\n{c_address_diff}",
+      use_container_width=True,
+      key="btn_address",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
+
+# زر لإلغاء الفلترة وعرض الكل في حال رغب المستخدم بذلك
+if st.session_state["active_filter"] != "الكل":
+  if st.button(
+      f"🔄 إيقاف الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
+      " كافة الاختلافات",
+      use_container_width=True,
+  ):
+    st.session_state["active_filter"] = "الكل"
+    st.rerun()
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود:")
+st.subheader(
+    f"📋 جدول الاختلافات (الفلتر النشط: {st.session_state['active_filter']}):"
+)
 
 if (
     "diff_df" in st.session_state
@@ -337,35 +326,56 @@ if (
 ):
   df_display = st.session_state["diff_df"].copy()
 
-  rows_html = ""
-  for i, (_, row) in enumerate(df_display.iterrows(), 1):
-    status_text = str(row["الحالة"]).strip()
-    is_phone_diff = "الهاتف" in status_text
-    row_bg = "background-color: #fdf2f8;" if is_phone_diff else ""
+  # تطبيق الفلتر بناءً على المربع الذي تم الضغط عليه
+  current_filter = st.session_state["active_filter"]
+  if current_filter == "فروقات الكود":
+    df_display = df_display[
+        df_display["الحالة"].str.contains("فقط", na=False)
+    ]
+  elif current_filter == "فروقات الهاتف":
+    df_display = df_display[
+        df_display["الحالة"].str.contains("الهاتف|هاتف وعنوان", na=False)
+    ]
+  elif current_filter == "فروقات العنوان":
+    df_display = df_display[
+        df_display["الحالة"].str.contains("العنوان|هاتف وعنوان", na=False)
+    ]
 
-    cells_html = (
-        f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
-        f' solid #e5e7eb; font-size: 14px; {row_bg} font-weight:'
-        f' bold;">{i}</td>'
+  if not df_display.empty:
+    if "الكود_raw" in df_display.columns:
+      df_display = df_display.drop(columns=["الكود_raw"])
+
+    rows_html = ""
+    for i, (_, row) in enumerate(df_display.iterrows(), 1):
+      status_text = str(row["الحالة"]).strip()
+      is_phone_diff = "الهاتف" in status_text or "العنوان" in status_text
+      row_bg = "background-color: #fdf2f8;" if is_phone_diff else ""
+
+      cells_html = (
+          f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
+          f' solid #e5e7eb; font-size: 14px; {row_bg} font-weight:'
+          f' bold;">{i}</td>'
+      )
+      for val in row:
+        cells_html += f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; {row_bg}">{val}</td>'
+
+      rows_html += f"<tr>{cells_html}</tr>"
+
+    columns_list = ["التسلسل"] + list(df_display.columns)
+    headers_html = "".join(
+        f'<th style="background-color: #2563eb; color: white; padding: 12px; text-align: center; font-size: 14px;">{col}</th>'
+        for col in columns_list
     )
-    for val in row:
-      cells_html += f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; {row_bg}">{val}</td>'
 
-    rows_html += f"<tr>{cells_html}</tr>"
+    final_table = f"""
+        <table style="width: 100%; border-collapse: collapse; direction: rtl; font-family: sans-serif;">
+            <thead><tr>{headers_html}</tr></thead>
+            <tbody>{rows_html}</tbody>
+        </table>
+        """
 
-  columns_list = ["التسلسل"] + list(df_display.columns)
-  headers_html = "".join(
-      f'<th style="background-color: #2563eb; color: white; padding: 12px; text-align: center; font-size: 14px;">{col}</th>'
-      for col in columns_list
-  )
-
-  final_table = f"""
-    <table style="width: 100%; border-collapse: collapse; direction: rtl; font-family: sans-serif;">
-        <thead><tr>{headers_html}</tr></thead>
-        <tbody>{rows_html}</tbody>
-    </table>
-    """
-
-  st.markdown(final_table, unsafe_allow_html=True)
+    st.markdown(final_table, unsafe_allow_html=True)
+  else:
+    st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info("لا توجد اختلافات بين الملفين.")
