@@ -5,11 +5,9 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تهيئة الحالة الافتراضية للفلتر
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
@@ -89,12 +87,6 @@ if uploaded_main and uploaded_new:
           c for c in common_cols if c != code_col and c != phone_col
       ]
       address_col = remaining_cols[0] if remaining_cols else phone_col
-
-    st.markdown(
-        f"📌 **الأعمدة النشطة:** كود (`{code_col}`) | هاتف (`{phone_col}`) |"
-        f" عنوان (`{address_col}`)",
-        unsafe_allow_html=True,
-    )
 
     def clean_series(series):
       return (
@@ -211,88 +203,58 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
 
-# تصميم أزرار تفاعلية حقيقية عبر Streamlit Columns لتغيير الفلتر بلحظتها بدون فقدان الملفات
+# تصميم بطاقات ملونة ومتدرجة ثابتة ومرتبة باحترافية
 st.markdown(
-    """
-    <style>
-    div.stButton > button {
-        width: 100%;
-        border-radius: 12px;
-        color: white !important;
-        font-weight: bold;
-        padding: 12px 0px;
-        border: none;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        transition: transform 0.1s ease;
-    }
-    div.stButton > button:hover {
-        transform: scale(1.02);
-        opacity: 0.9;
-    }
-    </style>
+    f"""
+    <div style="display: flex; gap: 10px; width: 100%; direction: rtl; margin-bottom: 15px;">
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #fb7185, #e11d48); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">🏠 فروقات العنوان</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_address_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #f472b6, #db2777); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📞 فروقات الهاتف</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_phone_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #a78bfa, #7c3aed); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">🔑 فروقات الكود</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_code_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #fb923c, #ea580c); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">⚠️ الإجمالي</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_diff}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #38bdf8, #0284c7); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📁 المقارنة</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_new}</div>
+        </div>
+        <div style="flex: 1; padding: 15px; border-radius: 12px; background: linear-gradient(135deg, #34d399, #059669); color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="font-size: 13px; font-weight: bold; margin-bottom: 5px;">📦 الرئيسي</div>
+            <div style="font-size: 20px; font-weight: 900;">{c_main}</div>
+        </div>
+    </div>
     """,
     unsafe_allow_html=True,
 )
 
-col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
-
-with col_b1:
-  if st.button(
-      f"🏠 فروقات العنوان\n\n{c_address_diff}",
-      key:="btn_addr",
-      help="فلترة حسب فروقات العنوان",
-  ):
-    st.session_state["active_filter"] = "فروقات العنوان"
-with col_b2:
-  if st.button(
-      f"📞 فروقات الهاتف\n\n{c_phone_diff}",
-      key:="btn_phone",
-      help="فلترة حسب فروقات الهاتف",
-  ):
-    st.session_state["active_filter"] = "فروقات الهاتف"
-with col_b3:
-  if st.button(
-      f"🔑 فروقات الكود\n\n{c_code_diff}",
-      key:="btn_code",
-      help="فلترة حسب فروقات الكود",
-  ):
-    st.session_state["active_filter"] = "فروقات الكود"
-with col_b4:
-  if st.button(
-      f"⚠️ الإجمالي\n\n{c_diff}", key:="btn_diff", help="عرض كافة الاختلافات"
-  ):
-    st.session_state["active_filter"] = "الكل"
-with col_b5:
-  if st.button(
-      f"📁 المقارنة\n\n{c_new}",
-      key:="btn_new",
-      help="موجود في الملف المقارن فقط",
-  ):
-    st.session_state["active_filter"] = "المقارنة"
-with col_b6:
-  if st.button(
-      f"📦 الرئيسي\n\n{c_main}",
-      key:="btn_main",
-      help="موجود في الملف الرئيسي فقط",
-  ):
-    st.session_state["active_filter"] = "الرئيسي"
-
-st.markdown(
-    f"<div style='text-align: center; margin-top: 10px; font-weight: bold;"
-    f" color: #4F46E5;'>📌 الفلتر النشط حالياً: <span"
-    f" style='background: #e0e7ff; padding: 4px 12px; border-radius: 6px;'>"
-    f"{st.session_state['active_filter']}</span></div>",
-    unsafe_allow_html=True,
+# قائمة منسدلة نقية وآمنة للتحكم بفلترة الجدول دون فقدان الملفات أو إعادة التحميل المزعج
+filter_options = [
+    "الكل",
+    "فروقات العنوان",
+    "فروقات الهاتف",
+    "فروقات الكود",
+    "الرئيسي",
+    "المقارنة",
+]
+current_index = (
+    filter_options.index(st.session_state["active_filter"])
+    if st.session_state["active_filter"] in filter_options
+    else 0
 )
 
-if st.session_state["active_filter"] != "الكل":
-  if st.button(
-      "🔄 إلغاء الفلترة وعرض الكل",
-      use_container_width=True,
-      key="reset_filter_btn",
-  ):
-    st.session_state["active_filter"] = "الكل"
-    st.rerun()
+selected_filter = st.selectbox(
+    "🔍 اختر الفلتر لعرض البيانات في الجدول:", filter_options, index=current_index
+)
+st.session_state["active_filter"] = selected_filter
 
 st.markdown("---")
 st.subheader(
@@ -305,24 +267,23 @@ if (
 ):
   df_display = st.session_state["diff_df"].copy()
 
-  current_filter = st.session_state["active_filter"]
-  if current_filter == "فروقات الكود":
+  if selected_filter == "فروقات الكود":
     df_display = df_display[
         df_display["الحالة"].str.contains("فقط", na=False)
     ]
-  elif current_filter == "فروقات الهاتف":
+  elif selected_filter == "فروقات الهاتف":
     df_display = df_display[
         df_display["الحالة"].str.contains("الهاتف|هاتف وعنوان", na=False)
     ]
-  elif current_filter == "فروقات العنوان":
+  elif selected_filter == "فروقات العنوان":
     df_display = df_display[
         df_display["الحالة"].str.contains("العنوان|هاتف وعنوان", na=False)
     ]
-  elif current_filter == "الرئيسي":
+  elif selected_filter == "الرئيسي":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في الرئيسي فقط", na=False)
     ]
-  elif current_filter == "المقارنة":
+  elif selected_filter == "المقارنة":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في المقارنة فقط", na=False)
     ]
