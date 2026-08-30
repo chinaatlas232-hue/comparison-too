@@ -37,32 +37,36 @@ if uploaded_main and uploaded_new:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
 
     st.markdown("---")
-    st.subheader("⚙️ اختر الأعمدة المطابقة لملفاتك:")
 
+    # فلتر واحد فقط لاختيار العمود المشترك (الكود)
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
+    default_id_idx = common_cols.index("الكود") if "الكود" in common_cols else 0
 
-    col_a, col_b, col_c = st.columns(3)
-
-    with col_a:
-      id_col = st.selectbox("🔑 عمود الكود المشترك:", common_cols)
-
-    with col_b:
-      # عرض أعمدة الملفات لتختار عمود الهاتف بحرية
-      phone_col = st.selectbox("📞 عمود الهاتف:", list(df_main.columns))
-
-    with col_c:
-      # عرض أعمدة الملفات لتختار عمود العنوان بحرية
-      addr_col = st.selectbox("📍 عمود العنوان:", list(df_main.columns))
+    id_col = st.selectbox(
+        "🔑 اختر العمود المشترك (الكود) فقط:", common_cols, index=default_id_idx
+    )
 
     if st.button("🚀 ابدأ المقارنة والتحليل الفوري", use_container_width=True):
-      # استخدام الأعمدة المحددة من المستخدم
-      m_df = df_main[[id_col, phone_col, addr_col]].copy()
-      
-      # محاولة إيجاد نفس أسماء الأعمدة أو مطابقتها في الملف الجديد
-      n_phone_col = phone_col if phone_col in df_new.columns else df_new.columns[1]
-      n_addr_col = addr_col if addr_col in df_new.columns else df_new.columns[2]
-      
-      n_df = df_new[[id_col, n_phone_col, n_addr_col]].copy()
+      # البحث الذكي والافتراضي عن أعمدة الهاتف والعنوان في الملفين
+      def find_col(df, keywords):
+        for col in df.columns:
+          for kw in keywords:
+            if kw in str(col).lower():
+              return col
+        return df.columns[1]  # افتراضي إذا لم يجد
+
+      phone_main = find_col(df_main, ["هاتف", "phone", "جوال"])
+      addr_main = find_col(
+          df_main, ["عنوان", "address", "استلام", "البضاعة", "مكان"]
+      )
+
+      phone_new = (
+          phone_main if phone_main in df_new.columns else df_new.columns[1]
+      )
+      addr_new = addr_main if addr_main in df_new.columns else df_new.columns[2]
+
+      m_df = df_main[[id_col, phone_main, addr_main]].copy()
+      n_df = df_new[[id_col, phone_new, addr_new]].copy()
 
       m_df.columns = ["id", "phone", "address"]
       n_df.columns = ["id", "phone", "address"]
