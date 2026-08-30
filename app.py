@@ -193,16 +193,6 @@ if uploaded_main and uploaded_new:
     st.session_state["address_diff_count"] = address_diff_count
 
     diff_df = pd.DataFrame(diff_records)
-
-    if not diff_df.empty and "الكود" in diff_df.columns:
-      diff_df["الكود_raw"] = diff_df["الكود"]
-      diff_df["الكود"] = diff_df["الكود"].apply(
-          lambda x: (
-              f"<span style='color: #4f46e5; font-weight: bold; font-size:"
-              f" 14px;'>{x}</span>"
-          )
-      )
-
     st.session_state["diff_df"] = diff_df
 
   except Exception as e:
@@ -220,89 +210,74 @@ st.markdown("---")
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# تنسيق المربعات بخط أبيض بالكامل وتكبير الأرقام إلى 16px مع ضبط الترتيب الصحيح
-st.markdown(
-    f"""
-    <style>
-    .filter-container {{
-        display: flex;
-        gap: 12px;
-        width: 100%;
-        direction: rtl;
-        margin-bottom: 15px;
-    }}
-    .filter-card {{
-        flex: 1;
-        padding: 14px 10px;
-        border-radius: 12px;
-        color: #ffffff !important;
-        text-align: center;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-        transition: all 0.2s ease;
-        text-decoration: none !important;
-        display: block;
-    }}
-    .filter-card:hover {{
-        transform: translateY(-2px);
-        opacity: 0.95;
-        color: #ffffff !important;
-    }}
-    .card-title {{
-        font-size: 13px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #ffffff !important;
-    }}
-    .card-value {{
-        font-size: 16px !important;
-        font-weight: bold;
-        color: #ffffff !important;
-    }}
-    </style>
+# استخدام أزرار Streamlit الحقيقية للمربعات لتجنب فتح روابط خارجية ومنع مشاكل المتصفح
+cols = st.columns(6)
 
-    <div class="filter-container">
-        <a href="?filter=address" class="filter-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
-            <div class="card-title">🏠 فروقات العنوان</div>
-            <div class="card-value">{c_address_diff}</div>
-        </a>
-        <a href="?filter=phone" class="filter-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
-            <div class="card-title">📞 فروقات الهاتف</div>
-            <div class="card-value">{c_phone_diff}</div>
-        </a>
-        <a href="?filter=code" class="filter-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
-            <div class="card-title">🔑 فروقات الكود</div>
-            <div class="card-value">{c_code_diff}</div>
-        </a>
-        <a href="?filter=all" class="filter-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
-            <div class="card-title">⚠️ الإجمالي</div>
-            <div class="card-value">{c_diff}</div>
-        </a>
-        <a href="?filter=new" class="filter-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
-            <div class="card-title">📁 المقارنة</div>
-            <div class="card-value">{c_new}</div>
-        </a>
-        <a href="?filter=main" class="filter-card" style="background: linear-gradient(135deg, #34d399, #059669);">
-            <div class="card-title">📦 الرئيسي</div>
-            <div class="card-value">{c_main}</div>
-        </a>
-    </div>
+with cols[5]:
+  if st.button(
+      f"🏠 فروقات العنوان\n\n{c_address_diff}",
+      use_container_width=True,
+      key="btn_addr",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
+with cols[4]:
+  if st.button(
+      f"📞 فروقات الهاتف\n\n{c_phone_diff}",
+      use_container_width=True,
+      key="btn_phone",
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
+with cols[3]:
+  if st.button(
+      f"🔑 فروقات الكود\n\n{c_code_diff}",
+      use_container_width=True,
+      key="btn_code",
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
+with cols[2]:
+  if st.button(
+      f"⚠️ الإجمالي\n\n{c_diff}", use_container_width=True, key="btn_all"
+  ):
+    st.session_state["active_filter"] = "الكل"
+with cols[1]:
+  if st.button(
+      f"📁 المقارنة\n\n{c_new}", use_container_width=True, key="btn_new"
+  ):
+    st.session_state["active_filter"] = "المقارنة"
+with cols[0]:
+  if st.button(
+      f"📦 الرئيسي\n\n{c_main}", use_container_width=True, key="btn_main"
+  ):
+    st.session_state["active_filter"] = "الرئيسي"
+
+# تصميم لتلوين الأزرار باللون الأبيض وتوسيط النصوص وحجم الخط 16px
+st.markdown(
+    """
+    <style>
+    div.stButton > button {
+        color: #ffffff !important;
+        border-radius: 12px;
+        font-weight: bold;
+        height: 85px;
+        white-space: pre-wrap;
+        font-size: 16px !important;
+        border: none;
+    }
+    div.stButton > button p {
+        font-size: 16px !important;
+        color: #ffffff !important;
+    }
+    /* ألوان التدرج الخاصة بالمربعات */
+    div[data-testid="column"]:nth-child(6) button { background: linear-gradient(135deg, #fb7185, #e11d48) !important; }
+    div[data-testid="column"]:nth-child(5) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; }
+    div[data-testid="column"]:nth-child(4) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; }
+    div[data-testid="column"]:nth-child(3) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; }
+    div[data-testid="column"]:nth-child(2) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; }
+    div[data-testid="column"]:nth-child(1) button { background: linear-gradient(135deg, #34d399, #059669) !important; }
+    </style>
     """,
     unsafe_allow_html=True,
 )
-
-# معالجة الضغط على البطاقات عبر الـ Query Params
-query_params = st.query_params
-if "filter" in query_params:
-  f_val = query_params["filter"]
-  if f_val == "code":
-    st.session_state["active_filter"] = "فروقات الكود"
-  elif f_val == "phone":
-    st.session_state["active_filter"] = "فروقات الهاتف"
-  elif f_val == "address":
-    st.session_state["active_filter"] = "فروقات العنوان"
-  else:
-    st.session_state["active_filter"] = "الكل"
 
 if st.session_state["active_filter"] != "الكل":
   if st.button(
@@ -311,7 +286,6 @@ if st.session_state["active_filter"] != "الكل":
       use_container_width=True,
   ):
     st.session_state["active_filter"] = "الكل"
-    st.query_params.clear()
     st.rerun()
 
 st.markdown("---")
@@ -340,9 +314,6 @@ if (
     ]
 
   if not df_display.empty:
-    if "الكود_raw" in df_display.columns:
-      df_display = df_display.drop(columns=["الكود_raw"])
-
     rows_html = ""
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
