@@ -163,7 +163,7 @@ if uploaded_main and uploaded_new:
     st.session_state["phone_diff_count"] = phone_diff_count
     diff_df = pd.DataFrame(diff_records)
 
-    # تطبيق التنسيق مباشرة كـ HTML لضمان اللون الأحمر والخط العريض وحجم 14
+    # تطبيق التنسيق مباشرة كـ HTML لضمان اللون الأحمر والخط العريض وحجم 14 للكود
     if not diff_df.empty and "الكود" in diff_df.columns:
       diff_df["الكود"] = diff_df["الكود"].apply(
           lambda x: (
@@ -253,9 +253,11 @@ if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
 ):
+  df_display = st.session_state["diff_df"].copy()
+
+  # تحويل الجدول إلى HTML مع تلوين صفوف "اختلاف رقم الهاتف" بخلفية وردية خفيفة
   table_html = (
-      st.session_state["diff_df"]
-      .to_html(escape=False, index=False)
+      df_display.to_html(escape=False, index=False)
       .replace(
           "<table",
           '<table style="width: 100%; border-collapse: collapse; direction: rtl;'
@@ -266,13 +268,47 @@ if (
           '<th style="background-color: #2563eb; color: white; padding: 12px;'
           ' text-align: center; font-size: 15px;">',
       )
-      .replace(
-          "<td>",
-          '<td style="padding: 10px; text-align: center; border-bottom: 1px'
-          ' solid #e5e7eb; font-size: 14px;">',
-      )
   )
 
-  st.markdown(table_html, unsafe_allow_html=True)
+  # استبدال الصفوف التي تحتوي على "اختلاف رقم الهاتف" لتلوينها بالوردي الخفيف
+  table_html = table_html.replace(
+      "<td>اختلاف رقم الهاتف</td>",
+      '<td style="padding: 10px; text-align: center; border-bottom: 1px solid'
+      ' #e5e7eb; font-size: 14px; background-color: #fce7f3; font-weight:'
+      ' bold;">اختلاف رقم الهاتف</td>',
+  )
+
+  # تلوين باقي خلايا نفس الصف بالوردي الخفيف لتظليل الصف بالكامل
+  for idx, row in df_display.iterrows():
+    if row["الحالة"] == "اختلاف رقم الهاتف":
+      # استبدال عام لتلوين الصف الذي يحتوي على هذا الكود
+      pass
+
+  # طريقة مباشرة وأكيدة لتلوين الصفوف عبر البحث في الكود أو الحالة
+  # سنقوم بتعديل دقيق لتوليد HTML الصفوف
+  rows_html = ""
+  for _, row in df_display.iterrows():
+    is_phone_diff = row["الحالة"] == "اختلاف رقم الهاتف"
+    row_bg = "background-color: #fdf2f8;" if is_phone_diff else ""
+
+    cells_html = "".join([
+        f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; {row_bg}">{val}</td>'
+        for val in row
+    ])
+    rows_html += f"<tr>{cells_html}</tr>"
+
+  headers_html = "".join(
+      f'<th style="background-color: #2563eb; color: white; padding: 12px; text-align: center; font-size: 15px;">{col}</th>'
+      for col in df_display.columns
+  )
+
+  final_table = f"""
+    <table style="width: 100%; border-collapse: collapse; direction: rtl; font-family: sans-serif;">
+        <thead><tr>{headers_html}</tr></thead>
+        <tbody>{rows_html}</tbody>
+    </table>
+    """
+
+  st.markdown(final_table, unsafe_allow_html=True)
 else:
   st.info("لا توجد اختلافات بين الملفين.")
