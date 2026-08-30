@@ -5,6 +5,11 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
+# تهيئة الذاكرة المؤقتة لضمان بقاء الملفات والنتائج
+if "saved_main" not in st.session_state:
+  st.session_state["saved_main"] = None
+if "saved_new" not in st.session_state:
+  st.session_state["saved_new"] = None
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
@@ -62,9 +67,9 @@ with col2:
   if uploaded_new is not None:
     st.session_state["saved_new"] = uploaded_new
 
-# اعتماد الملفات المحفوظة لضمان ثباتها وعدم ضياعها
-active_main = st.session_state.get("saved_main", None)
-active_new = st.session_state.get("saved_new", None)
+# اعتماد الملفات المحفوظة في الجلسة لضمان ثباتها
+active_main = st.session_state["saved_main"]
+active_new = st.session_state["saved_new"]
 
 
 @st.cache_data
@@ -76,7 +81,18 @@ def load_data(file1, file2):
   return df1, df2
 
 
-if active_main and active_new:
+# تهيئة المتغيرات الافتراضية
+c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_address_diff = (
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+)
+diff_df = pd.DataFrame()
+
+if active_main is not None and active_new is not None:
   try:
     df_main, df_new = load_data(active_main, active_new)
 
@@ -142,8 +158,6 @@ if active_main and active_new:
 
     c_main = len(df_m["clean_id"].unique())
     c_new = len(df_n["clean_id"].unique())
-    st.session_state["count_main"] = c_main
-    st.session_state["count_new"] = c_new
 
     dict_new_phone = dict(zip(df_n["clean_id"], df_n["clean_phone"]))
     dict_main_phone = dict(zip(df_m["clean_id"], df_m["clean_phone"]))
@@ -212,33 +226,26 @@ if active_main and active_new:
             "الحالة": "موجود في المقارنة فقط",
         })
 
-    total_diff = code_diff_count + phone_diff_count + address_diff_count
-    st.session_state["diff_count"] = total_diff
-    st.session_state["code_diff_count"] = code_diff_count
-    st.session_state["phone_diff_count"] = phone_diff_count
-    st.session_state["address_diff_count"] = address_diff_count
+    c_diff = code_diff_count + phone_diff_count + address_diff_count
+    c_code_diff = code_diff_count
+    c_phone_diff = phone_diff_count
+    c_address_diff = address_diff_count
 
     diff_df = pd.DataFrame(diff_records)
-    st.session_state["diff_df"] = diff_df
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-c_main = st.session_state.get("count_main", 0)
-c_new = st.session_state.get("count_new", 0)
-c_diff = st.session_state.get("diff_count", 0)
-c_code_diff = st.session_state.get("code_diff_count", 0)
-c_phone_diff = st.session_state.get("phone_diff_count", 0)
-c_address_diff = st.session_state.get("address_diff_count", 0)
-
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تكبير حجم خط المربعات فقط إلى 16px دون المساس بخلفياتها الافتراضية
+# تنسيق الأزرار (خط بحجم 16px بدون خلفيات ملونة للمربعات)
 st.markdown(
     """
     <style>
     div.stButton > button:not([kind="secondary"]) {
+        background-color: transparent !important;
+        border: 1px solid rgba(49, 51, 63, 0.2) !important;
         font-size: 16px !important;
         font-weight: bold !important;
     }
@@ -304,11 +311,8 @@ st.subheader(
     f"📋 جدول الاختلافات (الفلتر النشط: {st.session_state['active_filter']}):"
 )
 
-if (
-    "diff_df" in st.session_state
-    and not st.session_state["diff_df"].empty
-):
-  df_display = st.session_state["diff_df"].copy()
+if not diff_df.empty:
+  df_display = diff_df.copy()
   current_filter = st.session_state["active_filter"]
 
   if current_filter == "فروقات الكود":
