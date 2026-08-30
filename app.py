@@ -11,7 +11,7 @@ if "active_filter" not in st.session_state:
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
 
-  # تنسيق خاص لزر المسح (خلفية حمراء وكتابة بيضاء)
+  # تنسيق زر المسح (خلفية حمراء وكتابة بيضاء)
   st.markdown(
       """
         <style>
@@ -234,18 +234,15 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تكبير حجم خط المربعات حصراً إلى 16px مع الحفاظ على التصميم الأصلي
+# تكبير حجم خط المربعات فقط إلى 16px دون المساس بخلفياتها الافتراضية
 st.markdown(
     """
     <style>
-    div.stButton > button {
-        width: 100% !important;
-        border-radius: 10px !important;
+    div.stButton > button:not([kind="secondary"]) {
         font-size: 16px !important;
         font-weight: bold !important;
-        padding: 10px !important;
     }
-    div.stButton > button p {
+    div.stButton > button:not([kind="secondary"]) p {
         font-size: 16px !important;
         font-weight: bold !important;
     }
