@@ -8,25 +8,6 @@ st.set_page_config(
 # زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
-  st.markdown(
-      """
-        <style>
-        div.stButton > button:first-child {
-            background-color: #ef4444;
-            color: white;
-            border-radius: 8px;
-            border: none;
-            font-weight: bold;
-        }
-        div.stButton > button:first-child:hover {
-            background-color: #dc2626;
-            color: white;
-        }
-        </style>
-        """,
-      unsafe_allow_html=True,
-  )
-
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
     for key in list(st.session_state.keys()):
       del st.session_state[key]
@@ -217,7 +198,7 @@ if uploaded_main and uploaded_new:
       diff_df["الكود_raw"] = diff_df["الكود"]
       diff_df["الكود"] = diff_df["الكود"].apply(
           lambda x: (
-              f"<span style='color: #dc2626; font-weight: bold; font-size:"
+              f"<span style='color: #4f46e5; font-weight: bold; font-size:"
               f" 14px;'>{x}</span>"
           )
       )
@@ -236,72 +217,98 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
 
-# تصميم الألوان الحديثة والمدرجة خصيصاً لتجاوز أي قيم افتراضية سابقة
-st.markdown(
-    """
-    <style>
-    /* تطبيق الألوان المباشرة والمدرجة على أزرار الأعمدة الستة */
-    div[data-testid="column"]:nth-of-type(1) button[kind="secondary"] { background: linear-gradient(135deg, #34d399, #059669) !important; color: white !important; }
-    div[data-testid="column"]:nth-of-type(2) button[kind="secondary"] { background: linear-gradient(135deg, #fb923c, #ea580c) !important; color: white !important; }
-    div[data-testid="column"]:nth-of-type(3) button[kind="secondary"] { background: linear-gradient(135deg, #f87171, #dc2626) !important; color: white !important; }
-    div[data-testid="column"]:nth-of-type(4) button[kind="secondary"] { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; color: white !important; }
-    div[data-testid="column"]:nth-of-type(5) button[kind="secondary"] { background: linear-gradient(135deg, #f472b6, #db2777) !important; color: white !important; }
-    div[data-testid="column"]:nth-of-type(6) button[kind="secondary"] { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; color: white !important; }
+if "active_filter" not in st.session_state:
+  st.session_state["active_filter"] = "الكل"
 
-    /* قاعدة عامة لضمان شكل الأزرار وتناسقها */
-    div.stButton > button {
-        width: 100% !important;
-        border-radius: 12px !important;
-        font-weight: bold !important;
-        border: none !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.06) !important;
-        padding: 16px 10px !important;
-        font-size: 14px !important;
-        letter-spacing: 0.3px !important;
-    }
-    
-    div.stButton > button:hover {
-        opacity: 0.92 !important;
+# استخدام أزرار HTML/CSS مخصصة بالكامل بألوان متدرجة وحديثة (Soft Gradients) غير صاخبة ومريحة للعين
+st.markdown(
+    f"""
+    <style>
+    .filter-container {{
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        direction: rtl;
+        margin-bottom: 15px;
+    }}
+    .filter-card {{
+        flex: 1;
+        padding: 14px 10px;
+        border-radius: 12px;
+        color: white;
+        text-align: center;
+        cursor: pointer;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: block;
+    }}
+    .filter-card:hover {{
         transform: translateY(-2px);
-        transition: all 0.25s ease;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.12) !important;
-    }
+        opacity: 0.95;
+    }}
+    .card-title {{
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+    }}
+    .card-value {{
+        font-size: 18px;
+        font-weight: bold;
+    }}
     </style>
+
+    <div class="filter-container">
+        <a href="?filter=main" class="filter-card" style="background: linear-gradient(135deg, #34d399, #059669);">
+            <div class="card-title">📦 الرئيسي</div>
+            <div class="card-value">{c_main}</div>
+        </a>
+        <a href="?filter=new" class="filter-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
+            <div class="card-title">📁 المقارنة</div>
+            <div class="card-value">{c_new}</div>
+        </a>
+        <a href="?filter=all" class="filter-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
+            <div class="card-title">⚠️ الإجمالي</div>
+            <div class="card-value">{c_diff}</div>
+        </a>
+        <a href="?filter=code" class="filter-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
+            <div class="card-title">🔑 فروقات الكود</div>
+            <div class="card-value">{c_code_diff}</div>
+        </a>
+        <a href="?filter=phone" class="filter-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
+            <div class="card-title">📞 فروقات الهاتف</div>
+            <div class="card-value">{c_phone_diff}</div>
+        </a>
+        <a href="?filter=address" class="filter-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
+            <div class="card-title">🏠 فروقات العنوان</div>
+            <div class="card-value">{c_address_diff}</div>
+        </a>
+    </div>
     """,
     unsafe_allow_html=True,
 )
 
-if "active_filter" not in st.session_state:
-  st.session_state["active_filter"] = "الكل"
-
-col1, col2, col3, col4, col5, col6 = st.columns(6)
-
-with col1:
-  if st.button(f"📦 الرئيسي\n\n{c_main}", key="btn_main"):
-    st.session_state["active_filter"] = "الكل"
-with col2:
-  if st.button(f"📁 المقارنة\n\n{c_new}", key="btn_new"):
-    st.session_state["active_filter"] = "الكل"
-with col3:
-  if st.button(f"⚠️ الإجمالي\n\n{c_diff}", key="btn_total"):
-    st.session_state["active_filter"] = "الكل"
-with col4:
-  if st.button(f"🔑 فروقات الكود\n\n{c_code_diff}", key="btn_code"):
+# معالجة الضغط على البطاقات عبر الـ Query Params
+query_params = st.query_params
+if "filter" in query_params:
+  f_val = query_params["filter"]
+  if f_val == "code":
     st.session_state["active_filter"] = "فروقات الكود"
-with col5:
-  if st.button(f"📞 فروقات الهاتف\n\n{c_phone_diff}", key="btn_phone"):
+  elif f_val == "phone":
     st.session_state["active_filter"] = "فروقات الهاتف"
-with col6:
-  if st.button(f"🏠 فروقات العنوان\n\n{c_address_diff}", key="btn_address"):
+  elif f_val == "address":
     st.session_state["active_filter"] = "فروقات العنوان"
+  else:
+    st.session_state["active_filter"] = "الكل"
 
 if st.session_state["active_filter"] != "الكل":
   if st.button(
-      f"🔄 إيقاف الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
-      " كافة الاختلافات",
+      f"🔄 إلغاء الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
+      " الكل",
       use_container_width=True,
   ):
     st.session_state["active_filter"] = "الكل"
+    st.query_params.clear()
     st.rerun()
 
 st.markdown("---")
@@ -337,7 +344,7 @@ if (
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
       is_phone_diff = "الهاتف" in status_text or "العنوان" in status_text
-      row_bg = "background-color: #fdf2f8;" if is_phone_diff else ""
+      row_bg = "background-color: #faf5ff;" if is_phone_diff else ""
 
       cells_html = (
           f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
@@ -351,7 +358,7 @@ if (
 
     columns_list = ["التسلسل"] + list(df_display.columns)
     headers_html = "".join(
-        f'<th style="background-color: #2563eb; color: white; padding: 12px; text-align: center; font-size: 14px;">{col}</th>'
+        f'<th style="background-color: #4f46e5; color: white; padding: 12px; text-align: center; font-size: 14px;">{col}</th>'
         for col in columns_list
     )
 
