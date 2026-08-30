@@ -72,8 +72,8 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # محاولة إيجاد عمود الكود افتراضياً للربط به
-    code_col_default = next(
+    # تحديد عمود الكود وعمود المقارنة تلقائياً
+    code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         common_cols[0],
     )
@@ -84,7 +84,6 @@ if uploaded_main and uploaded_new:
         default_idx = i
         break
 
-    # قائمة منسدلة واحدة لتحديد العمود المطلوب مقارنته
     selected_col = st.selectbox(
         "🔑 اختر عمود المقارنة الأساسي (الكود أو رقم الهاتف):",
         common_cols,
@@ -100,38 +99,30 @@ if uploaded_main and uploaded_new:
           .replace("nan", "")
       )
 
-    # إذا كان العمود المختار هو نفسه عمود الكود أو غيره
     df_m = df_main.copy()
     df_n = df_new.copy()
 
-    # تحديد اسم عمود الكود بدقة للربط
-    id_col = code_col_default if code_col_default in common_cols else common_cols[0]
-
-    df_m["clean_id"] = clean_series(df_m[id_col])
-    df_n["clean_id"] = clean_series(df_n[id_col])
+    df_m["clean_id"] = clean_series(df_m[code_col])
+    df_n["clean_id"] = clean_series(df_n[code_col])
 
     df_m["clean_val"] = clean_series(df_m[selected_col])
     df_n["clean_val"] = clean_series(df_n[selected_col])
 
-    main_vals = set(df_m["clean_val"][df_m["clean_val"] != ""])
-    new_vals = set(df_n["clean_val"][df_n["clean_val"] != ""])
-
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # حساب الاختلافات بناءً على القيم
+    # دمج الملفين بناءً على الكود المشترك بدقة
     merged_df = pd.merge(
         df_m[["clean_id", "clean_val"]],
         df_n[["clean_id", "clean_val"]],
         on="clean_id",
-        how="outer",
+        how="inner",
         suffixes=("_main", "_new"),
     )
 
+    # فلترة الصفوف التي بها اختلاف في القيمة لنفس الكود
     diff_rows = merged_df[
-        (merged_df["clean_val_main"] != merged_df["clean_val_new"])
-        | (merged_df["clean_val_main"].isna())
-        | (merged_df["clean_val_new"].isna())
+        merged_df["clean_val_main"] != merged_df["clean_val_new"]
     ].copy()
 
     st.session_state["diff_count"] = len(diff_rows)
@@ -151,13 +142,11 @@ c_diff = st.session_state.get("diff_count", 0)
 
 st.markdown("---")
 
-# تحديد لون المربع الثالث بناءً على وجود فرق أو عدمه
 if c_diff > 0:
   diff_bg = "linear-gradient(135deg, #ef4444, #b91c1c)"
 else:
   diff_bg = "linear-gradient(135deg, #4b5563, #1f2937)"
 
-# تصميم المربعات الثلاثة بالألوان المطلوبة
 st.markdown(
     f"""
     <style>
@@ -203,7 +192,6 @@ with col3:
       unsafe_allow_html=True,
   )
 
-# عرض جدول النتائج والاختلافات مع عمود الكود في أسفل الشاشة
 st.markdown("---")
 st.subheader("📋 جدول الاختلافات (مع عرض الكود المرتبط):")
 if (
