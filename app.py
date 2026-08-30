@@ -220,7 +220,7 @@ st.markdown("---")
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# استخدام أزرار HTML/CSS مخصصة بالكامل بألوان متدرجة وحديثة (Soft Gradients) غير صاخبة ومريحة للعين
+# تنسيق المربعات بخط أبيض بالكامل وتكبير الأرقام إلى 16px مع ضبط الترتيب الصحيح
 st.markdown(
     f"""
     <style>
@@ -235,53 +235,56 @@ st.markdown(
         flex: 1;
         padding: 14px 10px;
         border-radius: 12px;
-        color: white;
+        color: #ffffff !important;
         text-align: center;
         cursor: pointer;
         box-shadow: 0 4px 10px rgba(0,0,0,0.05);
         transition: all 0.2s ease;
-        text-decoration: none;
+        text-decoration: none !important;
         display: block;
     }}
     .filter-card:hover {{
         transform: translateY(-2px);
         opacity: 0.95;
+        color: #ffffff !important;
     }}
     .card-title {{
         font-size: 13px;
         font-weight: 600;
         margin-bottom: 6px;
+        color: #ffffff !important;
     }}
     .card-value {{
-        font-size: 18px;
+        font-size: 16px !important;
         font-weight: bold;
+        color: #ffffff !important;
     }}
     </style>
 
     <div class="filter-container">
-        <a href="?filter=main" class="filter-card" style="background: linear-gradient(135deg, #34d399, #059669);">
-            <div class="card-title">📦 الرئيسي</div>
-            <div class="card-value">{c_main}</div>
-        </a>
-        <a href="?filter=new" class="filter-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
-            <div class="card-title">📁 المقارنة</div>
-            <div class="card-value">{c_new}</div>
-        </a>
-        <a href="?filter=all" class="filter-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
-            <div class="card-title">⚠️ الإجمالي</div>
-            <div class="card-value">{c_diff}</div>
-        </a>
-        <a href="?filter=code" class="filter-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
-            <div class="card-title">🔑 فروقات الكود</div>
-            <div class="card-value">{c_code_diff}</div>
+        <a href="?filter=address" class="filter-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
+            <div class="card-title">🏠 فروقات العنوان</div>
+            <div class="card-value">{c_address_diff}</div>
         </a>
         <a href="?filter=phone" class="filter-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
             <div class="card-title">📞 فروقات الهاتف</div>
             <div class="card-value">{c_phone_diff}</div>
         </a>
-        <a href="?filter=address" class="filter-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
-            <div class="card-title">🏠 فروقات العنوان</div>
-            <div class="card-value">{c_address_diff}</div>
+        <a href="?filter=code" class="filter-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
+            <div class="card-title">🔑 فروقات الكود</div>
+            <div class="card-value">{c_code_diff}</div>
+        </a>
+        <a href="?filter=all" class="filter-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
+            <div class="card-title">⚠️ الإجمالي</div>
+            <div class="card-value">{c_diff}</div>
+        </a>
+        <a href="?filter=new" class="filter-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
+            <div class="card-title">📁 المقارنة</div>
+            <div class="card-value">{c_new}</div>
+        </a>
+        <a href="?filter=main" class="filter-card" style="background: linear-gradient(135deg, #34d399, #059669);">
+            <div class="card-title">📦 الرئيسي</div>
+            <div class="card-value">{c_main}</div>
         </a>
     </div>
     """,
