@@ -121,7 +121,7 @@ if uploaded_main and uploaded_new:
     st.session_state["count_main"] = c_main
     st.session_state["count_new"] = c_new
 
-    # حساب الفرق الحقيقي بين عددي الملفين
+    # حساب الفرق الإجمالي بين عددي الملفين
     st.session_state["diff_count"] = abs(c_main - c_new)
 
     # بناء قواميس البحث
@@ -129,11 +129,13 @@ if uploaded_main and uploaded_new:
     dict_main = dict(zip(df_m["clean_id"], df_m["clean_val"]))
 
     diff_records = []
+    phone_diff_count = 0  # عداد فروقات أرقام الهواتف
 
     # فحص الكودات في الرئيسي ومقارنتها بالمقارنة
     for idx, val in dict_main.items():
       if idx in dict_new:
         if val != dict_new[idx]:
+          phone_diff_count += 1
           diff_records.append({
               "الكود": idx,
               f"{phone_col} (الرئيسي)": val,
@@ -158,6 +160,7 @@ if uploaded_main and uploaded_new:
             "الحالة": "موجود في المقارنة فقط",
         })
 
+    st.session_state["phone_diff_count"] = phone_diff_count
     diff_df = pd.DataFrame(diff_records)
 
     # تطبيق التنسيق مباشرة كـ HTML لضمان اللون الأحمر والخط العريض وحجم 14
@@ -177,6 +180,7 @@ if uploaded_main and uploaded_new:
 c_main = st.session_state.get("count_main", 0)
 c_new = st.session_state.get("count_new", 0)
 c_diff = st.session_state.get("diff_count", 0)
+c_phone_diff = st.session_state.get("phone_diff_count", 0)
 
 st.markdown("---")
 
@@ -191,19 +195,21 @@ st.markdown(
     .metric-card-1 {{ background: linear-gradient(135deg, #10b981, #047857); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-card-2 {{ background: linear-gradient(135deg, #f97316, #c2410c); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
     .metric-card-3 {{ background: {diff_bg}; padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
-    .metric-title {{ font-size: 16px; font-weight: bold; margin-bottom: 8px; }}
-    .metric-value {{ font-size: 28px; font-weight: bold; }}
+    .metric-card-4 {{ background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+    .metric-title {{ font-size: 15px; font-weight: bold; margin-bottom: 8px; }}
+    .metric-value {{ font-size: 26px; font-weight: bold; }}
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-col1, col2, col3 = st.columns(3)
+# عرض 4 مربعات متناسقة بعرض الشاشة
+col1, col2, col3, col4 = st.columns(4)
 with col1:
   st.markdown(
       f"""
         <div class="metric-card-1">
-            <div class="metric-title">📦 عدد العناصر (الملف الرئيسي)</div>
+            <div class="metric-title">📦 عناصر الرئيسي</div>
             <div class="metric-value">{c_main}</div>
         </div>
         """,
@@ -213,7 +219,7 @@ with col2:
   st.markdown(
       f"""
         <div class="metric-card-2">
-            <div class="metric-title">📁 عدد العناصر (ملف المقارنة)</div>
+            <div class="metric-title">📁 عناصر المقارنة</div>
             <div class="metric-value">{c_new}</div>
         </div>
         """,
@@ -229,6 +235,16 @@ with col3:
         """,
       unsafe_allow_html=True,
   )
+with col4:
+  st.markdown(
+      f"""
+        <div class="metric-card-4">
+            <div class="metric-title">📞 فروقات رقم الهاتف</div>
+            <div class="metric-value">{c_phone_diff}</div>
+        </div>
+        """,
+      unsafe_allow_html=True,
+  )
 
 st.markdown("---")
 st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود:")
@@ -237,7 +253,6 @@ if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
 ):
-  # تصميم الجدول ليكون بعرض الشاشة بالكامل، برأس أزرق وكتابة بيضاء
   table_html = (
       st.session_state["diff_df"]
       .to_html(escape=False, index=False)
