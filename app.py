@@ -5,9 +5,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-if "active_filter" not in st.session_state:
-  st.session_state["active_filter"] = "الكل"
-
+# زر المسح اليدوي في القائمة الجانبية
 with st.sidebar:
   st.markdown("### ⚙️ إعدادات التحكم")
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
@@ -87,6 +85,12 @@ if uploaded_main and uploaded_new:
           c for c in common_cols if c != code_col and c != phone_col
       ]
       address_col = remaining_cols[0] if remaining_cols else phone_col
+
+    st.markdown(
+        f"📌 **الأعمدة النشطة:** كود (`{code_col}`) | هاتف (`{phone_col}`) |"
+        f" عنوان (`{address_col}`)",
+        unsafe_allow_html=True,
+    )
 
     def clean_series(series):
       return (
@@ -202,52 +206,108 @@ c_phone_diff = st.session_state.get("phone_diff_count", 0)
 c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
-st.markdown("### 📌 اضغط على أي بط أدناه لفلترة الجدول فوراً:")
 
-# استخدام أزرار ستريمليت الأصلية الحقيقية (فعالة 100%) موزعة على 6 أعمدة
-cols = st.columns(6)
+if "active_filter" not in st.session_state:
+  st.session_state["active_filter"] = "الكل"
 
-with cols[0]:
-  if st.button(
-      f"🏠 العنوان\n({c_address_diff})",
-      use_container_width=True,
-      key="b_addr",
-  ):
-    st.session_state["active_filter"] = "فروقات العنوان"
-
-with cols[1]:
-  if st.button(
-      f"📞 الهاتف\n({c_phone_diff})", use_container_width=True, key="b_phone"
-  ):
-    st.session_state["active_filter"] = "فروقات الهاتف"
-
-with cols[2]:
-  if st.button(
-      f"🔑 الكود\n({c_code_diff})", use_container_width=True, key="b_code"
-  ):
+# استخدام نظام قراءة الحالات عبر query params بطريقة آمنة لا تفتح متصفحات خارجية بل تحدث الصفحة الحالية
+query_params = st.query_params
+if "filter" in query_params:
+  f_val = query_params["filter"]
+  if f_val == "code":
     st.session_state["active_filter"] = "فروقات الكود"
-
-with cols[3]:
-  if st.button(f"⚠️ الإجمالي\n({c_diff})", use_container_width=True, key="b_diff"):
+  elif f_val == "phone":
+    st.session_state["active_filter"] = "فروقات الهاتف"
+  elif f_val == "address":
+    st.session_state["active_filter"] = "فروقات العنوان"
+  elif f_val == "diff":
     st.session_state["active_filter"] = "الكل"
-
-with cols[4]:
-  if st.button(f"📁 المقارنة\n({c_new})", use_container_width=True, key="b_new"):
+  elif f_val == "new":
     st.session_state["active_filter"] = "المقارنة"
-
-with cols[5]:
-  if st.button(
-      f"📦 الرئيسي\n({c_main})", use_container_width=True, key="b_main"
-  ):
+  elif f_val == "main":
     st.session_state["active_filter"] = "الرئيسي"
 
+# تصميم عصري بالكامل باستخدام بطاقات HTML تفاعلية ملونة ومتدرجة وبداخلها البيانات والأرقام بوضوح تام
 st.markdown(
-    f"<div style='text-align: center; margin: 10px 0; font-weight: bold;"
-    f" color: #4F46E5;'>الفلتر النشط حالياً: <span style='background: #e0e7ff;"
-    f" padding: 3px 12px; border-radius: 6px;'>"
-    f"{st.session_state['active_filter']}</span></div>",
+    f"""
+    <style>
+    .cards-container {{
+        display: flex;
+        gap: 12px;
+        width: 100%;
+        direction: rtl;
+        margin-bottom: 20px;
+    }}
+    .custom-card {{
+        flex: 1;
+        padding: 16px 10px;
+        border-radius: 14px;
+        color: white !important;
+        text-align: center;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+        transition: all 0.25s ease;
+        text-decoration: none !important;
+        display: block;
+    }}
+    .custom-card:hover {{
+        transform: translateY(-4px);
+        box-shadow: 0 10px 22px rgba(0,0,0,0.2);
+        opacity: 0.92;
+        color: white !important;
+    }}
+    .card-title {{
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        color: white !important;
+    }}
+    .card-val {{
+        font-size: 22px !important;
+        font-weight: 900;
+        color: white !important;
+    }}
+    </style>
+
+    <div class="cards-container">
+        <a href="?filter=address" target="_self" class="custom-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
+            <div class="card-title">🏠 فروقات العنوان</div>
+            <div class="card-val">{c_address_diff}</div>
+        </a>
+        <a href="?filter=phone" target="_self" class="custom-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
+            <div class="card-title">📞 فروقات الهاتف</div>
+            <div class="card-val">{c_phone_diff}</div>
+        </a>
+        <a href="?filter=code" target="_self" class="custom-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
+            <div class="card-title">🔑 فروقات الكود</div>
+            <div class="card-val">{c_code_diff}</div>
+        </a>
+        <a href="?filter=diff" target="_self" class="custom-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
+            <div class="card-title">⚠️ الإجمالي</div>
+            <div class="card-val">{c_diff}</div>
+        </a>
+        <a href="?filter=new" target="_self" class="custom-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
+            <div class="card-title">📁 المقارنة</div>
+            <div class="card-val">{c_new}</div>
+        </a>
+        <a href="?filter=main" target="_self" class="custom-card" style="background: linear-gradient(135deg, #34d399, #059669);">
+            <div class="card-title">📦 الرئيسي</div>
+            <div class="card-val">{c_main}</div>
+        </a>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
+
+if st.session_state["active_filter"] != "الكل":
+  st.markdown("<br>", unsafe_allow_html=True)
+  if st.button(
+      f"🔄 إلغاء الفلترة الحالية ({st.session_state['active_filter']}) وعرض"
+      " الكل",
+      use_container_width=True,
+  ):
+    st.session_state["active_filter"] = "الكل"
+    st.query_params.clear()
+    st.rerun()
 
 st.markdown("---")
 st.subheader(
@@ -259,8 +319,8 @@ if (
     and not st.session_state["diff_df"].empty
 ):
   df_display = st.session_state["diff_df"].copy()
-  current_filter = st.session_state["active_filter"]
 
+  current_filter = st.session_state["active_filter"]
   if current_filter == "فروقات الكود":
     df_display = df_display[
         df_display["الحالة"].str.contains("فقط", na=False)
@@ -306,6 +366,7 @@ if (
     )
 
     final_table = f"""
+        ...
         <table style="width: 100%; border-collapse: collapse; direction: rtl; font-family: sans-serif;">
             <thead><tr>{headers_html}</tr></thead>
             <tbody>{rows_html}</tbody>
@@ -316,4 +377,4 @@ if (
   else:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
-  st.info("لا توجد اختلافات بين الملفين أو لم يتم رفع الملفات بعد.")
+  st.info("لا توجد اختلافات بين الملفين.")
