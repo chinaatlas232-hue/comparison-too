@@ -20,19 +20,19 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# متغيرات افتراضية للنتائج
-count_main = 0
-count_new = 0
-diff_count = 0
-
+# رفع الملفات مع الحفاظ على حالتها في الذاكرة المؤقتة
 col1, col2 = st.columns(2)
 with col1:
     uploaded_main = st.file_uploader(
-        "📁 ارفع الملف الرئيسي (Master File)", type=["xlsx", "xls"]
+        "📁 ارفع الملف الرئيسي (Master File)",
+        type=["xlsx", "xls"],
+        key="main_file",
     )
 with col2:
     uploaded_new = st.file_uploader(
-        "📁 ارفع الملف المراد مقارنته (New File)", type=["xlsx", "xls"]
+        "📁 ارفع الملف المراد مقارنته (New File)",
+        type=["xlsx", "xls"],
+        key="new_file",
     )
 
 
@@ -45,6 +45,7 @@ def load_data(file1, file2):
   return df1, df2
 
 
+# المعالجة التلقائية وفحص النتائج فور رفع الملفات دون الحاجة لأزرار إضافية
 if uploaded_main and uploaded_new:
   try:
     df_main, df_new = load_data(uploaded_main, uploaded_new)
@@ -56,80 +57,58 @@ if uploaded_main and uploaded_new:
         "🔑 اختر عمود الكود المشترك حصراً:", common_cols, index=default_id_idx
     )
 
-    if st.button("🚀 ابدأ المقارنة", use_container_width=True):
-      def clean_series(series):
-        return (
-            series.astype(str)
-            .str.replace(r"\.0$", "", regex=True)
-            .str.strip()
-            .fillna("")
-            .replace("nan", "")
-        )
+    def clean_series(series):
+      return (
+          series.astype(str)
+          .str.replace(r"\.0$", "", regex=True)
+          .str.strip()
+          .fillna("")
+          .replace("nan", "")
+      )
 
-      main_ids = set(clean_series(df_main[id_col]))
-      new_ids = set(clean_series(df_new[id_col]))
+    main_ids = clean_series(df_main[id_col])
+    new_ids = clean_series(df_new[id_col])
 
-      main_ids.discard("")
-      new_ids.discard("")
+    main_set = set(main_ids[main_ids != ""])
+    new_set = set(new_ids[new_ids != ""])
 
-      st.session_state["count_main"] = len(main_ids)
-      st.session_state["count_new"] = len(new_ids)
-      st.session_state["diff_count"] = len(main_ids.symmetric_difference(new_ids))
+    st.session_state["count_main"] = len(main_set)
+    st.session_state["count_new"] = len(new_set)
+
+    diff_set = main_set.symmetric_difference(new_set)
+    st.session_state["diff_count"] = len(diff_set)
+
+    if diff_set:
+      st.session_state["diff_df"] = pd.DataFrame(
+          list(diff_set), columns=["الكود المختلف"]
+      )
+    else:
+      st.session_state["diff_df"] = pd.DataFrame(columns=["الكود المختلف"])
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-# جلب القيم إذا تمت المقارنة
 c_main = st.session_state.get("count_main", 0)
 c_new = st.session_state.get("count_new", 0)
 c_diff = st.session_state.get("diff_count", 0)
 
 st.markdown("---")
 
-# عرض المربعات الثلاثة في أعلى الصفحة بتدرجات لونية جميلة
+# تصميم المربعات الثلاثة في أعلى الصفحة
 st.markdown(
     """
     <style>
-    .metric-card-1 {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-        padding: 20px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .metric-card-2 {
-        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-        padding: 20px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .metric-card-3 {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        padding: 20px;
-        border-radius: 12px;
-        color: white;
-        text-align: center;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }
-    .metric-title {
-        font-size: 16px;
-        font-weight: bold;
-        margin-bottom: 8px;
-    }
-    .metric-value {
-        font-size: 28px;
-        font-weight: bold;
-    }
+    .metric-card-1 { background: linear-gradient(135deg, #3b82f6, #1d4ed8); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .metric-card-2 { background: linear-gradient(135deg, #8b5cf6, #6d28d9); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .metric-card-3 { background: linear-gradient(135deg, #f59e0b, #d97706); padding: 20px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .metric-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; }
+    .metric-value { font-size: 28px; font-weight: bold; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
 col1, col2, col3 = st.columns(3)
-
 with col1:
   st.markdown(
       f"""
@@ -140,7 +119,6 @@ with col1:
         """,
       unsafe_allow_html=True,
   )
-
 with col2:
   st.markdown(
       f"""
@@ -151,7 +129,6 @@ with col2:
         """,
       unsafe_allow_html=True,
   )
-
 with col3:
   st.markdown(
       f"""
@@ -162,3 +139,16 @@ with col3:
         """,
       unsafe_allow_html=True,
   )
+
+# عرض جدول الفرق البسيط في أسفل الشاشة
+st.markdown("---")
+st.subheader("📋 جدول الأكواد المختلفة (النتيجة):")
+if (
+    "diff_df" in st.session_state
+    and not st.session_state["diff_df"].empty
+):
+  st.dataframe(
+      st.session_state["diff_df"], use_container_width=True, hide_index=True
+  )
+else:
+  st.info("الرجاء رفع الملفات لعرض النتائج هنا.")
