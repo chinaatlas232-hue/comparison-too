@@ -34,7 +34,7 @@ with st.sidebar:
 
 st.markdown(
     """
-    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الملفات الذكية</h2>
+    <h2 style='text-align: center; color: #4F46E5;'>📊 أداة مقارنة الملفات الذكية (فلتر الكود حصراً)</h2>
     """,
     unsafe_allow_html=True,
 )
@@ -69,7 +69,7 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود بدقة تامة
+    # تحديد عمود الكود تلقائياً
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
@@ -77,26 +77,24 @@ if uploaded_main and uploaded_new:
     if not code_col:
       code_col = common_cols[0]
 
-    # اختيار عمود رقم الهاتف للمقارنة
-    comparison_options = [c for c in common_cols if c != code_col]
-    if not comparison_options:
-      comparison_options = common_cols
-
-    default_phone_idx = 0
-    for i, col in enumerate(comparison_options):
-      if "هاتف" in str(col) or "phone" in str(col).lower():
-        default_phone_idx = i
-        break
+    # تحديد عمود الهاتف تلقائياً
+    phone_col = next(
+        (
+            c
+            for c in common_cols
+            if "هاتف" in str(c) or "phone" in str(c).lower()
+        ),
+        None,
+    )
+    if not phone_col and len(common_cols) > 1:
+      phone_col = [c for c in common_cols if c != code_col][0]
+    elif not phone_col:
+      phone_col = code_col
 
     st.markdown(
-        f"📌 **البحث والربط يتم حصراً عبر عمود الكود:** `{code_col}`",
+        f"📌 **فلتر الكود النشط حصراً:** الاعتماد على عمود (`{code_col}`) للبحث"
+        f" ومقارنة عمود (`{phone_col}`)",
         unsafe_allow_html=True,
-    )
-
-    selected_col = st.selectbox(
-        "🔑 اختر عمود رقم الهاتف للمقارنة:",
-        comparison_options,
-        index=default_phone_idx,
     )
 
     def clean_series(series):
@@ -112,24 +110,23 @@ if uploaded_main and uploaded_new:
     df_m = df_main.copy()
     df_n = df_new.copy()
 
-    # تنظيف الأعمدة
+    # تنظيف البيانات
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
-    df_m["clean_val"] = clean_series(df_m[selected_col])
-    df_n["clean_val"] = clean_series(df_n[selected_col])
+    df_m["clean_val"] = clean_series(df_m[phone_col])
+    df_n["clean_val"] = clean_series(df_n[phone_col])
 
     st.session_state["count_main"] = len(df_m["clean_id"].unique())
     st.session_state["count_new"] = len(df_n["clean_id"].unique())
 
-    # الحل الجذري: تحويل ملف المقارنة إلى قاموس (Dictionary) مفتاحه الكود وقيمته رقم الهاتف
-    # هذا يضمن أن البحث عن الكود يتم بشكل مباشر وحصري 100% دون أي خطأ في الصفوف
+    # تحويل ملف المقارنة إلى قاموس (Dictionary) مفتاحه الكود حصراً للبحث المباشر
     new_dict = dict(zip(df_n["clean_id"], df_n["clean_val"]))
 
-    # جلب القيمة المقابلة لكل كود من الملف الرئيسي في ملف المقارنة
+    # جلب القيمة المقابلة لكل كود
     df_m["val_new"] = df_m["clean_id"].map(new_dict)
 
-    # تصفية الأكواد التي لها قيمة في الملفين لكن رقم الهاتف مختلف بينهما
+    # استخراج الاختلافات بدقة مطلقة بناءً على الكود
     diff_rows = df_m[
         df_m["val_new"].notna()
         & (df_m["val_new"] != "")
@@ -142,8 +139,8 @@ if uploaded_main and uploaded_new:
     if not diff_rows.empty:
       final_result = pd.DataFrame({
           "الكود": diff_rows["clean_id"],
-          f"{selected_col} (الرئيسي)": diff_rows["clean_val"],
-          f"{selected_col} (المقارنة)": diff_rows["val_new"],
+          f"{phone_col} (الرئيسي)": diff_rows["clean_val"],
+          f"{phone_col} (المقارنة)": diff_rows["val_new"],
       })
       st.session_state["diff_df"] = final_result
     else:
@@ -211,7 +208,7 @@ with col3:
   )
 
 st.markdown("---")
-st.subheader("📋 جدول الاختلافات المطابقة بناءً على الكود حصرياً:")
+st.subheader("📋 جدول الاختلافات (فلتر الكود حصراً):")
 if (
     "diff_df" in st.session_state
     and not st.session_state["diff_df"].empty
@@ -220,4 +217,4 @@ if (
       st.session_state["diff_df"], use_container_width=True, hide_index=True
   )
 else:
-  st.info("لا توجد اختلافات مسجلة في أرقام الهواتف بناءً على الأكواد المشتركة.")
+  st.info("لا توجد اختلافات مسجلة أو لم يتم العثور على تطابق للأكواد.")
