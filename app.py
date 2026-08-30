@@ -69,7 +69,6 @@ if uploaded_main and uploaded_new:
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد عمود الكود تلقائياً
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
@@ -77,7 +76,6 @@ if uploaded_main and uploaded_new:
     if not code_col:
       code_col = common_cols[0]
 
-    # تحديد عمود الهاتف تلقائياً
     phone_col = next(
         (
             c
@@ -91,7 +89,6 @@ if uploaded_main and uploaded_new:
     elif not phone_col:
       phone_col = code_col
 
-    # تحديد عمود العنوان تلقائياً
     address_col = next(
         (
             c
@@ -239,37 +236,35 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 
 st.markdown("---")
 
-if c_diff > 0:
-  diff_bg = "linear-gradient(135deg, #ef4444, #b91c1c)"
-else:
-  diff_bg = "linear-gradient(135deg, #4b5563, #1f2937)"
-
-# حقن أكواد CSS لتلوين كل زر (مربع) بتدرجه الخاص وتثبيت مظهر احترافي
+# تصميم الألوان الحديثة والمترجة (Soft & Modern Gradients)
 st.markdown(
-    f"""
+    """
     <style>
-    div.stButton > button[data-baseweb="button"] {{
+    div.stButton > button[data-baseweb="button"] {
         width: 100%;
         border-radius: 12px;
         color: white;
         font-weight: bold;
         border: none;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        padding: 15px 10px;
-    }}
-    /* تلوين كل زر حسب ترتيبه */
-    div[data-testid="column"]:nth-of-type(1) button {{ background: linear-gradient(135deg, #10b981, #047857) !important; }}
-    div[data-testid="column"]:nth-of-type(2) button {{ background: linear-gradient(135deg, #f97316, #c2410c) !important; }}
-    div[data-testid="column"]:nth-of-type(3) button {{ background: {diff_bg} !important; }}
-    div[data-testid="column"]:nth-of-type(4) button {{ background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important; }}
-    div[data-testid="column"]:nth-of-type(5) button {{ background: linear-gradient(135deg, #f472b6, #db2777) !important; }}
-    div[data-testid="column"]:nth-of-type(6) button {{ background: linear-gradient(135deg, #0ea5e9, #0284c7) !important; }}
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        padding: 16px 10px;
+        font-size: 14px;
+        letter-spacing: 0.3px;
+    }
+    /* ألوان هادئة، متدرجة وعصرية غير صاخبة */
+    div[data-testid="column"]:nth-of-type(1) button { background: linear-gradient(135deg, #34d399, #059669) !important; } /* أخضر هادئ */
+    div[data-testid="column"]:nth-of-type(2) button { background: linear-gradient(135deg, #fb923c, #ea580c) !important; } /* برتقالي دافئ */
+    div[data-testid="column"]:nth-of-type(3) button { background: linear-gradient(135deg, #f87171, #dc2626) !important; } /* أحمر متدرج ناعم للإجمالي */
+    div[data-testid="column"]:nth-of-type(4) button { background: linear-gradient(135deg, #a78bfa, #7c3aed) !important; } /* بنفسجي فاتح مريح */
+    div[data-testid="column"]:nth-of-type(5) button { background: linear-gradient(135deg, #f472b6, #db2777) !important; } /* وردي أنيق */
+    div[data-testid="column"]:nth-of-type(6) button { background: linear-gradient(135deg, #38bdf8, #0284c7) !important; } /* سماوي هادئ */
     
-    div.stButton > button:hover {{
-        opacity: 0.9;
+    div.stButton > button:hover {
+        opacity: 0.92;
         transform: translateY(-2px);
-        transition: all 0.2s ease;
-    }}
+        transition: all 0.25s ease;
+        box-shadow: 0 6px 15px rgba(0,0,0,0.12);
+    }
     </style>
     """,
     unsafe_allow_html=True,
