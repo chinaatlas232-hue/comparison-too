@@ -213,36 +213,21 @@ c_address_diff = st.session_state.get("address_diff_count", 0)
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تسيق الأزرار مع خلفيات ملونة والنصوص والأرقام باللون الأسود البارز
+# تعديل حجم الخط حصراً إلى 16px مع الحفاظ على التصميم الأصلي
 st.markdown(
     """
     <style>
     div.stButton > button {
         width: 100% !important;
-        border-radius: 14px !important;
-        color: #111827 !important;
+        border-radius: 10px !important;
         font-size: 16px !important;
         font-weight: bold !important;
-        padding: 18px 10px !important;
-        border: none !important;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.15) !important;
-        transition: transform 0.1s ease !important;
+        padding: 10px !important;
     }
     div.stButton > button p {
-        color: #111827 !important;
+        font-size: 16px !important;
         font-weight: bold !important;
     }
-    div.stButton > button:hover {
-        transform: scale(1.02) !important;
-        opacity: 0.92 !important;
-        color: #111827 !important;
-    }
-    #b_addr > button { background: linear-gradient(135deg, #fda4af, #fb7185) !important; }
-    #b_phone > button { background: linear-gradient(135deg, #fbcfe8, #f472b6) !important; }
-    #b_code > button { background: linear-gradient(135deg, #ddd6fe, #a78bfa) !important; }
-    #b_diff > button { background: linear-gradient(135deg, #fed7aa, #fb923c) !important; }
-    #b_new > button { background: linear-gradient(135deg, #bae6fd, #38bdf8) !important; }
-    #b_main > button { background: linear-gradient(135deg, #a7f3d0, #34d399) !important; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -251,54 +236,42 @@ st.markdown(
 cols = st.columns(6)
 
 with cols[0]:
-  st.markdown('<div id="b_addr">', unsafe_allow_html=True)
   if st.button(
       f"🏠 العنوان\n\n{c_address_diff}",
       use_container_width=True,
       key="click_addr",
   ):
     st.session_state["active_filter"] = "فروقات العنوان"
-  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[1]:
-  st.markdown('<div id="b_phone">', unsafe_allow_html=True)
   if st.button(
       f"📞 الهاتف\n\n{c_phone_diff}", use_container_width=True, key="click_phone"
   ):
     st.session_state["active_filter"] = "فروقات الهاتف"
-  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[2]:
-  st.markdown('<div id="b_code">', unsafe_allow_html=True)
   if st.button(
       f"🔑 الكود\n\n{c_code_diff}", use_container_width=True, key="click_code"
   ):
     st.session_state["active_filter"] = "فروقات الكود"
-  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[3]:
-  st.markdown('<div id="b_diff">', unsafe_allow_html=True)
   if st.button(
       f"⚠️ الإجمالي\n\n{c_diff}", use_container_width=True, key="click_diff"
   ):
     st.session_state["active_filter"] = "الكل"
-  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[4]:
-  st.markdown('<div id="b_new">', unsafe_allow_html=True)
   if st.button(
       f"📁 المقارنة\n\n{c_new}", use_container_width=True, key="click_new"
   ):
     st.session_state["active_filter"] = "المقارنة"
-  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[5]:
-  st.markdown('<div id="b_main">', unsafe_allow_html=True)
   if st.button(
       f"📦 الرئيسي\n\n{c_main}", use_container_width=True, key="click_main"
   ):
     st.session_state["active_filter"] = "الرئيسي"
-  st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
     f"<div style='text-align: center; margin: 15px 0; font-size: 16px;"
