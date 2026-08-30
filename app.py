@@ -210,93 +210,45 @@ st.markdown("---")
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# معالجة معاملات الـ URL لتحديث الفلتر فوراً بدون فتح متصفح خارجي
-query_params = st.query_params
-if "filter" in query_params:
-  f_val = query_params["filter"]
-  if f_val == "code":
-    st.session_state["active_filter"] = "فروقات الكود"
-  elif f_val == "phone":
-    st.session_state["active_filter"] = "فروقات الهاتف"
-  elif f_val == "address":
-    st.session_state["active_filter"] = "فروقات العنوان"
-  elif f_val == "diff":
-    st.session_state["active_filter"] = "الكل"
-  elif f_val == "new":
-    st.session_state["active_filter"] = "المقارنة"
-  elif f_val == "main":
+# استخدام أزرار Streamlit الحقيقية الموزعة على أعمدة لتفادي فتح أي متصفح خارجي نهائياً
+col_b1, col_b2, col_b3, col_b4, col_b5, col_b6 = st.columns(6)
+
+with col_b1:
+  if st.button(
+      f"📦 الرئيسي\n{c_main}", use_container_width=True, key="btn_main"
+  ):
     st.session_state["active_filter"] = "الرئيسي"
-
-# تصميم مربعات تفاعلية بـ HTML مع نص أبيض وحجم خط 16px للقيم
-st.markdown(
-    f"""
-    <style>
-    .filter-container {{
-        display: flex;
-        gap: 12px;
-        width: 100%;
-        direction: rtl;
-        margin-bottom: 15px;
-    }}
-    .filter-card {{
-        flex: 1;
-        padding: 14px 10px;
-        border-radius: 12px;
-        color: #ffffff !important;
-        text-align: center;
-        cursor: pointer;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-        transition: all 0.2s ease;
-        text-decoration: none !important;
-        display: block;
-    }}
-    .filter-card:hover {{
-        transform: translateY(-2px);
-        opacity: 0.95;
-        color: #ffffff !important;
-    }}
-    .card-title {{
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 6px;
-        color: #ffffff !important;
-    }}
-    .card-value {{
-        font-size: 16px !important;
-        font-weight: bold;
-        color: #ffffff !important;
-    }}
-    </style>
-
-    <div class="filter-container">
-        <a href="?filter=address" class="filter-card" style="background: linear-gradient(135deg, #fb7185, #e11d48);">
-            <div class="card-title">🏠 فروقات العنوان</div>
-            <div class="card-value">{c_address_diff}</div>
-        </a>
-        <a href="?filter=phone" class="filter-card" style="background: linear-gradient(135deg, #f472b6, #db2777);">
-            <div class="card-title">📞 فروقات الهاتف</div>
-            <div class="card-value">{c_phone_diff}</div>
-        </a>
-        <a href="?filter=code" class="filter-card" style="background: linear-gradient(135deg, #a78bfa, #7c3aed);">
-            <div class="card-title">🔑 فروقات الكود</div>
-            <div class="card-value">{c_code_diff}</div>
-        </a>
-        <a href="?filter=diff" class="filter-card" style="background: linear-gradient(135deg, #fb923c, #ea580c);">
-            <div class="card-title">⚠️ الإجمالي</div>
-            <div class="card-value">{c_diff}</div>
-        </a>
-        <a href="?filter=new" class="filter-card" style="background: linear-gradient(135deg, #38bdf8, #0284c7);">
-            <div class="card-title">📁 المقارنة</div>
-            <div class="card-value">{c_new}</div>
-        </a>
-        <a href="?filter=main" class="filter-card" style="background: linear-gradient(135deg, #34d399, #059669);">
-            <div class="card-title">📦 الرئيسي</div>
-            <div class="card-value">{c_main}</div>
-        </a>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+with col_b2:
+  if st.button(
+      f"📁 المقارنة\n{c_new}", use_container_width=True, key="btn_new"
+  ):
+    st.session_state["active_filter"] = "المقارنة"
+with col_b3:
+  if st.button(
+      f"⚠️ الإجمالي\n{c_diff}", use_container_width=True, key="btn_diff"
+  ):
+    st.session_state["active_filter"] = "الكل"
+with col_b4:
+  if st.button(
+      f"🔑 فروقات الكود\n{c_code_diff}",
+      use_container_width=True,
+      key="btn_code",
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
+with col_b5:
+  if st.button(
+      f"📞 فروقات الهاتف\n{c_phone_diff}",
+      use_container_width=True,
+      key="btn_phone",
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
+with col_b6:
+  if st.button(
+      f"🏠 فروقات العنوان\n{c_address_diff}",
+      use_container_width=True,
+      key="btn_address",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
 
 if st.session_state["active_filter"] != "الكل":
   if st.button(
@@ -305,7 +257,6 @@ if st.session_state["active_filter"] != "الكل":
       use_container_width=True,
   ):
     st.session_state["active_filter"] = "الكل"
-    st.query_params.clear()
     st.rerun()
 
 st.markdown("---")
@@ -331,6 +282,14 @@ if (
   elif current_filter == "فروقات العنوان":
     df_display = df_display[
         df_display["الحالة"].str.contains("العنوان|هاتف وعنوان", na=False)
+    ]
+  elif current_filter == "الرئيسي":
+    df_display = df_display[
+        df_display["الحالة"].str.contains("موجود في الرئيسي فقط", na=False)
+    ]
+  elif current_filter == "المقارنة":
+    df_display = df_display[
+        df_display["الحالة"].str.contains("موجود في المقارنة فقط", na=False)
     ]
 
   if not df_display.empty:
