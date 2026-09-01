@@ -184,7 +184,7 @@ if (
           .str.replace(r"\.0$", "", regex=True)
           .str.strip()
           .fillna("")
-          .replace(["nan", "None", "NAT", "nan"], "")
+          .replace(["nan", "None", "NAT", "nan", "None"], "")
       )
 
 
@@ -194,7 +194,7 @@ if (
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
-    # تصفية الصقور الفارغة وغير الصالحة
+    # تصفية القيم الفارغة بدقة لتجنب إهمال أي كود حقيقي
     df_m = df_m[
         (df_m["clean_id"] != "")
         & (df_m["clean_id"].str.lower() != "nan")
@@ -206,12 +206,8 @@ if (
         & (df_n["clean_id"].notna())
     ]
 
-    c_main = len(df_m["clean_id"].unique())
-    c_new = len(df_n["clean_id"].unique())
-
-    # إزالة التكرارات للأمان
-    df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
-    df_n = df_n.drop_duplicates(subset=["clean_id"], keep="last")
+    c_main = len(df_m["clean_id"])
+    c_new = len(df_n["clean_id"])
 
     phone_cols = [
         c
@@ -232,12 +228,11 @@ if (
         or "استلام" in str(c)
     ]
 
-    # تنظيف الأعمدة المعنية مسبقاً لتسريع المقارنة
     for c in phone_cols + city_cols + address_cols:
       df_m[f"cl_{c}"] = clean_series(df_m[c])
       df_n[f"cl_{c}"] = clean_series(df_n[c])
 
-    # دمج البيانات عبر الـ Merge السريع جداً (Vectorized Merge)
+    # استخدام Outer Merge مع الحفاظ على جميع الصفوف من كلا الملفين لضمان عدم ضياع أي كود جديد
     merged = pd.merge(
         df_m,
         df_n,
