@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، وزر تحميل الإكسل الأخضر الفاتح وتنسيق الأزرار
+# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، زر الإكسل الأخضر الفاتح، وتلوين الأزرار السبعة بألوان فاتحة ومختلفة
 st.markdown(
     """
     <style>
@@ -18,17 +18,98 @@ st.markdown(
     [data-testid="stSidebar"] {
         background-color: rgba(180, 180, 180, 0.72) !important;
     }
-    div.stButton > button[kind="secondary"] {
-        background-color: #4f46e5 !important;
-        color: white !important;
+    
+    /* 1. زر المدينة (أخضر فاتح) */
+    div[data-testid="column"]:nth-of-type(1) div.stButton > button {
+        background-color: rgba(34, 197, 94, 0.25) !important;
+        color: #15803d !important;
+        border: 1px solid rgba(34, 197, 94, 0.4) !important;
     }
-    div.stButton > button[kind="secondary"] p {
-        color: white !important;
+    div[data-testid="column"]:nth-of-type(1) div.stButton > button p {
+        color: #15803d !important;
     }
-    div.stButton > button[kind="secondary"]:hover {
-        background-color: #4338ca !important;
-        color: white !important;
+    div[data-testid="column"]:nth-of-type(1) div.stButton > button:hover {
+        background-color: rgba(34, 197, 94, 0.4) !important;
     }
+
+    /* 2. زر العنوان (أصفر فاتح) */
+    div[data-testid="column"]:nth-of-type(2) div.stButton > button {
+        background-color: rgba(234, 179, 8, 0.25) !important;
+        color: #a16207 !important;
+        border: 1px solid rgba(234, 179, 8, 0.4) !important;
+    }
+    div[data-testid="column"]:nth-of-type(2) div.stButton > button p {
+        color: #a16207 !important;
+    }
+    div[data-testid="column"]:nth-of-type(2) div.stButton > button:hover {
+        background-color: rgba(234, 179, 8, 0.4) !important;
+    }
+
+    /* 3. زر الهاتف (برتقالي فاتح) */
+    div[data-testid="column"]:nth-of-type(3) div.stButton > button {
+        background-color: rgba(249, 115, 22, 0.25) !important;
+        color: #c2410c !important;
+        border: 1px solid rgba(249, 115, 22, 0.4) !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div.stButton > button p {
+        color: #c2410c !important;
+    }
+    div[data-testid="column"]:nth-of-type(3) div.stButton > button:hover {
+        background-color: rgba(249, 115, 22, 0.4) !important;
+    }
+
+    /* 4. زر الكود (أزرق سماوي/فاتح) */
+    div[data-testid="column"]:nth-of-type(4) div.stButton > button {
+        background-color: rgba(59, 130, 246, 0.25) !important;
+        color: #1d4ed8 !important;
+        border: 1px solid rgba(59, 130, 246, 0.4) !important;
+    }
+    div[data-testid="column"]:nth-of-type(4) div.stButton > button p {
+        color: #1d4ed8 !important;
+    }
+    div[data-testid="column"]:nth-of-type(4) div.stButton > button:hover {
+        background-color: rgba(59, 130, 246, 0.4) !important;
+    }
+
+    /* 5. زر الإجمالي (أحمر فاتح) */
+    div[data-testid="column"]:nth-of-type(5) div.stButton > button {
+        background-color: rgba(239, 68, 68, 0.25) !important;
+        color: #b91c1c !important;
+        border: 1px solid rgba(239, 68, 68, 0.4) !important;
+    }
+    div[data-testid="column"]:nth-of-type(5) div.stButton > button p {
+        color: #b91c1c !important;
+    }
+    div[data-testid="column"]:nth-of-type(5) div.stButton > button:hover {
+        background-color: rgba(239, 68, 68, 0.4) !important;
+    }
+
+    /* 6. زر المقارنة (بنفسجي فاتح) */
+    div[data-testid="column"]:nth-of-type(6) div.stButton > button {
+        background-color: rgba(168, 85, 247, 0.25) !important;
+        color: #7e22ce !important;
+        border: 1px solid rgba(168, 85, 247, 0.4) !important;
+    }
+    div[data-testid="column"]:nth-of-type(6) div.stButton > button p {
+        color: #7e22ce !important;
+    }
+    div[data-testid="column"]:nth-of-type(6) div.stButton > button:hover {
+        background-color: rgba(168, 85, 247, 0.4) !important;
+    }
+
+    /* 7. زر الرئيسي (رصاصي فاتح) */
+    div[data-testid="column"]:nth-of-type(7) div.stButton > button {
+        background-color: rgba(107, 114, 128, 0.25) !important;
+        color: #374151 !important;
+        border: 1px solid rgba(107, 114, 128, 0.4) !important;
+    }
+    div[data-testid="column"]:nth-of-type(7) div.stButton > button p {
+        color: #374151 !important;
+    }
+    div[data-testid="column"]:nth-of-type(7) div.stButton > button:hover {
+        background-color: rgba(107, 114, 128, 0.4) !important;
+    }
+
     /* تخصيص زر تحميل الإكسل باللون الأخضر الفاتح */
     div.stDownloadButton > button {
         background-color: rgba(34, 197, 94, 0.2) !important;
@@ -43,6 +124,7 @@ st.markdown(
     div.stDownloadButton > button p {
         color: #15803d !important;
     }
+    
     /* منع قص النصوص في الأزرار وجعلها متناسقة */
     div.stButton > button {
         height: auto !important;
