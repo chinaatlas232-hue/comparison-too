@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، وزر تحميل الإكسل الأخضر الفاتح وإصلاح ارتفاع الأزرار العلوية
+# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، وزر تحميل الإكسل الأخضر الفاتح وتنسيق الأزرار
 st.markdown(
     """
     <style>
@@ -19,14 +19,14 @@ st.markdown(
         background-color: rgba(180, 180, 180, 0.72) !important;
     }
     div.stButton > button[kind="secondary"] {
-        background-color: #ef4444 !important;
+        background-color: #4f46e5 !important;
         color: white !important;
     }
     div.stButton > button[kind="secondary"] p {
         color: white !important;
     }
     div.stButton > button[kind="secondary"]:hover {
-        background-color: #dc2626 !important;
+        background-color: #4338ca !important;
         color: white !important;
     }
     /* تخصيص زر تحميل الإكسل باللون الأخضر الفاتح */
@@ -43,13 +43,13 @@ st.markdown(
     div.stDownloadButton > button p {
         color: #15803d !important;
     }
-    /* إصلاح عرض النص المقطوع في الأزرار العلوية المتعددة الأسطر */
+    /* منع قص النصوص في الأزرار العلوية وجعلها متناسقة */
     div.stButton > button {
         height: auto !important;
-        min-height: 75px !important;
+        min-height: 80px !important;
         white-space: pre-wrap !important;
-        padding-top: 10px !important;
-        padding-bottom: 10px !important;
+        padding-top: 12px !important;
+        padding-bottom: 12px !important;
     }
     div.stButton > button div {
         white-space: pre-wrap !important;
@@ -59,7 +59,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# إنشاء مجلد لحفظ الملفات على السيرفر لضمان عدم ضياعها وثباتها دائماً
+# إنشاء مجلد لحفظ الملفات على السيرفر لضمان ثباتها وعدم ضياعها
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -88,7 +88,11 @@ with st.sidebar:
   st.markdown("---")
   st.markdown("### ⚙️ إعدادات التحكم")
 
-  if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
+  if st.button(
+      "🗑️ مسح الملفات وإعادة ضبط التطبيق",
+      use_container_width=True,
+      type="primary",
+  ):
     if os.path.exists(main_file_path):
       os.remove(main_file_path)
     if os.path.exists(new_file_path):
