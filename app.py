@@ -485,16 +485,35 @@ if not diff_df.empty:
     rows_html = ""
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
-      is_diff = "اختلاف" in status_text
-      row_bg = "background-color: #faf5ff !important;" if is_diff else ""
 
-      cells_html = (
-          f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
-          f' solid #e5e7eb; font-size: 14px; {row_bg} font-weight:'
-          f' bold;">{i}</td>'
-      )
-      for val in row:
-        cells_html += f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; {row_bg}">{val}</td>'
+      cells_html = f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">{i}</td>'
+
+      for col_name, val in row.items():
+        cell_style = (
+            "padding: 10px; text-align: center; border-bottom: 1px solid"
+            " #e5e7eb; font-size: 14px;"
+        )
+
+        # التلوين يتم فقط للخلايا التي تحتوي على بيانات مختلفة بناءً على عمود الحالة أو اسم العمود
+        if col_name == "الحالة":
+          cell_style += " background-color: #fee2e2 !important; color: #b91c1c; font-weight: bold;"
+        elif "(الرئيسي)" in col_name or "(المقارنة)" in col_name:
+          base_col_name = (
+              col_name.replace(" (الرئيسي)", "")
+              .replace(" (المقارنة)", "")
+              .strip()
+          )
+          # التحقق مما إذا كان نوع هذا الحقل ضمن الفروقات الموجودة في خانة الحالة لهذا الصف
+          if (
+              ("هاتف" in status_text and "هاتف" in base_col_name)
+              or ("مدينة" in status_text and "مدين" in base_col_name)
+              or ("عنوان" in status_text and "عنوان" in base_col_name)
+              or ("موجود في الرئيسي فقط" in status_text)
+              or ("الكود غير موجود بقاعدة البيانات السابقة" in status_text)
+          ):
+            cell_style += " background-color: #fef3c7 !important; color: #92400e; font-weight: bold;"
+
+        cells_html += f'<td style="{cell_style}">{val}</td>'
 
       rows_html += f"<tr>{cells_html}</tr>"
 
