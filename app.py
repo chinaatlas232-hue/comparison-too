@@ -77,16 +77,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# تظليل المتغيرات باللون الأحمر: UPLOAD_DIR, main_file_path, new_file_path
-UPLOAD_DIR = <span style="color:red; font-weight:bold;">"saved_files"</span>
+UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-main_file_path = os.path.join(
-    UPLOAD_DIR, <span style="color:red; font-weight:bold;">"master_file.xlsx"</span>
-)
-new_file_path = os.path.join(
-    UPLOAD_DIR, <span style="color:red; font-weight:bold;">"new_file.xlsx"</span>
-)
+main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
+new_file_path = os.path.join(UPLOAD_DIR, "new_file.xlsx")
 
 with st.sidebar:
   st.markdown("### 📁 إدارة الملفات")
@@ -128,7 +123,6 @@ with st.sidebar:
     st.query_params.clear()
     st.rerun()
 
-# المتغيرات النشطة للملفات: active_main, active_new
 active_main = (
     main_file_path
     if os.path.exists(main_file_path)
@@ -158,38 +152,27 @@ def load_and_clean_data(file1, file2):
   return df1, df2
 
 
-# متغيرات العدادات والإجماليات باللون الأحمر لتمييزها
-<span style="color:red; font-weight:bold;">c_main</span>, <span style="
-    color: red; font-weight: bold;
-">c_new</span>, <span style="color:red; font-weight:bold;">c_diff</span>, <span style="
-    color: red; font-weight: bold;
-">c_code_diff</span>, <span style="color:red; font-weight:bold;">c_phone_diff</span>, <span style="
-    color: red; font-weight: bold;
-">c_city_diff</span>, <span style="
-    color: red; font-weight: bold;
-">c_address_diff</span> = (0, 0, 0, 0, 0, 0, 0)
-<span style="color:red; font-weight:bold;">diff_df</span> = pd.DataFrame()
+c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = (
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+)
+diff_df = pd.DataFrame()
 
 if (
     os.path.exists(main_file_path) and os.path.exists(new_file_path)
 ) or (active_main and active_new):
   try:
-    # متغيرات البيانات الرئيسية والمقارنة: df_main, df_new
-    <span style="color:red; font-weight:bold;">df_main</span>, <span style="
-        color: red; font-weight: bold;
-    ">df_new</span> = load_and_clean_data(active_main, active_new)
+    df_main, df_new = load_and_clean_data(active_main, active_new)
 
-    <span style="color:red; font-weight:bold;">common_cols</span> = list(
-        set(df_main.columns).intersection(set(df_new.columns))
-    )
+    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # متغير عمود الكود: code_col
-    <span style="color:red; font-weight:bold;">code_col</span> = next(
-        (
-            c
-            for c in common_cols
-            if "كود" in str(c) or "code" in str(c).lower()
-        ),
+    code_col = next(
+        (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
     )
     if not code_col:
@@ -208,8 +191,8 @@ if (
       )
 
 
-    <span style="color:red; font-weight:bold;">df_m</span> = df_main.copy()
-    <span style="color:red; font-weight:bold;">df_n</span> = df_new.copy()
+    df_m = df_main.copy()
+    df_n = df_new.copy()
 
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
@@ -231,18 +214,17 @@ if (
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_n = df_n.drop_duplicates(subset=["clean_id"], keep="last")
 
-    # أعمدة الهواتف، المدن، والعناوين الإضافية المظللة بالاحمر
-    <span style="color:red; font-weight:bold;">phone_cols</span> = [
+    phone_cols = [
         c
         for c in common_cols
         if "هاتف" in str(c) or "رقم" in str(c) or "phone" in str(c).lower()
     ]
-    <span style="color:red; font-weight:bold;">city_cols</span> = [
+    city_cols = [
         c
         for c in common_cols
         if "مدين" in str(c) or "city" in str(c).lower() or "محافظ" in str(c)
     ]
-    <span style="color:red; font-weight:bold;">address_cols</span> = [
+    address_cols = [
         c
         for c in common_cols
         if "عنوان" in str(c)
@@ -255,8 +237,7 @@ if (
       df_m[f"cl_{c}"] = clean_series(df_m[c])
       df_n[f"cl_{c}"] = clean_series(df_n[c])
 
-    # جدول الدمج: merged
-    <span style="color:red; font-weight:bold;">merged</span> = pd.merge(
+    merged = pd.merge(
         df_m,
         df_n,
         on="clean_id",
@@ -265,7 +246,7 @@ if (
         indicator=True,
     )
 
-    <span style="color:red; font-weight:bold;">diff_records</span> = []
+    diff_records = []
     code_diff_count = 0
     phone_diff_count = 0
     city_diff_count = 0
