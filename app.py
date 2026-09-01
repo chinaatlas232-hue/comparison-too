@@ -140,7 +140,8 @@ if "filter" in st.query_params:
     st.rerun()
 
 
-def load_data(file1, file2):
+@st.cache_data
+def load_and_clean_data(file1, file2):
   df1 = pd.read_excel(file1, sheet_name=0)
   df2 = pd.read_excel(file2, sheet_name=0)
   df1.columns = df1.columns.str.strip()
@@ -163,7 +164,7 @@ if (
     os.path.exists(main_file_path) and os.path.exists(new_file_path)
 ) or (active_main and active_new):
   try:
-    df_main, df_new = load_data(active_main, active_new)
+    df_main, df_new = load_and_clean_data(active_main, active_new)
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
@@ -183,9 +184,7 @@ if (
           .str.replace(r"\.0$", "", regex=True)
           .str.strip()
           .fillna("")
-          .replace("nan", "")
-          .replace("None", "")
-          .replace("NAT", "")
+          .replace(["nan", "None", "NAT", "nan"], "")
       )
 
 
@@ -195,7 +194,7 @@ if (
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
-    # استبعاد الصفوف ذات الكود الفارغ أو غير الصالح لمنع التداخل
+    # تصفية الصقور الفارغة وغير الصالحة
     df_m = df_m[
         (df_m["clean_id"] != "")
         & (df_m["clean_id"].str.lower() != "nan")
@@ -210,20 +209,9 @@ if (
     c_main = len(df_m["clean_id"].unique())
     c_new = len(df_n["clean_id"].unique())
 
-    # التعامل الآمن مع الأكواد المكررة عبر الاحتفاظ بآخر سجل أو دمجه
-    df_m_unique = df_m.drop_duplicates(subset=["clean_id"], keep="last")
-    df_n_unique = df_n.drop_duplicates(subset=["clean_id"], keep="last")
-
-    dict_main = df_m_unique.set_index("clean_id").to_dict(orient="index")
-    dict_new = df_n_unique.set_index("clean_id").to_dict(orient="index")
-
-    diff_records = []
-    code_diff_count = 0
-    phone_diff_count = 0
-    city_diff_count = 0
-    address_diff_count = 0
-
-    all_ids = set(dict_main.keys()).union(set(dict_new.keys()))
+    # إزالة التكرارات للأمان
+    df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
+    df_n = df_n.drop_duplicates(subset=["clean_id"], keep="last")
 
     phone_cols = [
         c
@@ -244,34 +232,42 @@ if (
         or "استلام" in str(c)
     ]
 
-    for idx in all_ids:
-      in_main = idx in dict_main
-      in_new = idx in dict_new
+    # تنظيف الأعمدة المعنية مسبقاً لتسريع المقارنة
+    for c in phone_cols + city_cols + address_cols:
+      df_m[f"cl_{c}"] = clean_series(df_m[c])
+      df_n[f"cl_{c}"] = clean_series(df_n[c])
 
-      if in_main and in_new:
-        row_m = dict_main[idx]
-        row_n = dict_new[idx]
+    # دمج البيانات عبر الـ Merge السريع جداً (Vectorized Merge)
+    merged = pd.merge(
+        df_m,
+        df_n,
+        on="clean_id",
+        how="outer",
+        suffixes=("_m", "_n"),
+        indicator=True,
+    )
 
-        has_p_diff = False
-        has_ci_diff = False
-        has_a_diff = False
+    diff_records = []
+    code_diff_count = 0
+    phone_diff_count = 0
+    city_diff_count = 0
+    address_diff_count = 0
+
+    for _, row in merged.iterrows():
+      idx = row["clean_id"]
+      merge_status = row["_merge"]
+
+      if merge_status == "both":
+        has_p_diff, has_ci_diff, has_a_diff = False, False, False
 
         for pc in phone_cols:
-          val_m = clean_series(pd.Series([row_m.get(pc, "")]))[0]
-          val_n = clean_series(pd.Series([row_n.get(pc, "")]))[0]
-          if val_m != val_n:
+          if row.get(f"cl_{pc}_m", "") != row.get(f"cl_{pc}_n", ""):
             has_p_diff = True
-
         for cic in city_cols:
-          val_m = clean_series(pd.Series([row_m.get(cic, "")]))[0]
-          val_n = clean_series(pd.Series([row_n.get(cic, "")]))[0]
-          if val_m != val_n:
+          if row.get(f"cl_{cic}_m", "") != row.get(f"cl_{cic}_n", ""):
             has_ci_diff = True
-
         for ac in address_cols:
-          val_m = clean_series(pd.Series([row_m.get(ac, "")]))[0]
-          val_n = clean_series(pd.Series([row_n.get(ac, "")]))[0]
-          if val_m != val_n:
+          if row.get(f"cl_{ac}_m", "") != row.get(f"cl_{ac}_n", ""):
             has_a_diff = True
 
         if has_p_diff or has_ci_diff or has_a_diff:
@@ -290,51 +286,47 @@ if (
           if has_a_diff:
             diff_labels.append("عنوان")
 
-          status_label = "اختلاف " + " و ".join(diff_labels)
-
           record = {"الكود": idx}
           for pc in phone_cols:
-            record[f"{pc} (الرئيسي)"] = row_m.get(pc, "")
-            record[f"{pc} (المقارنة)"] = row_n.get(pc, "")
+            record[f"{pc} (الرئيسي)"] = row.get(f"{pc}_m", "")
+            record[f"{pc} (المقارنة)"] = row.get(f"{pc}_n", "")
           for cic in city_cols:
-            record[f"{cic} (الرئيسي)"] = row_m.get(cic, "")
-            record[f"{cic} (المقارنة)"] = row_n.get(cic, "")
+            record[f"{cic} (الرئيسي)"] = row.get(f"{cic}_m", "")
+            record[f"{cic} (المقارنة)"] = row.get(f"{cic}_n", "")
           for ac in address_cols:
-            record[f"{ac} (الرئيسي)"] = row_m.get(ac, "")
-            record[f"{ac} (المقارنة)"] = row_n.get(ac, "")
+            record[f"{ac} (الرئيسي)"] = row.get(f"{ac}_m", "")
+            record[f"{ac} (المقارنة)"] = row.get(f"{ac}_n", "")
 
-          record["الحالة"] = status_label
+          record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
           diff_records.append(record)
 
-      elif in_main and not in_new:
+      elif merge_status == "left_only":
         code_diff_count += 1
-        row_m = dict_main[idx]
         record = {"الكود": idx}
         for pc in phone_cols:
-          record[f"{pc} (الرئيسي)"] = row_m.get(pc, "")
+          record[f"{pc} (الرئيسي)"] = row.get(f"{pc}_m", "")
           record[f"{pc} (المقارنة)"] = "غير موجود"
         for cic in city_cols:
-          record[f"{cic} (الرئيسي)"] = row_m.get(cic, "")
+          record[f"{cic} (الرئيسي)"] = row.get(f"{cic}_m", "")
           record[f"{cic} (المقارنة)"] = "غير موجود"
         for ac in address_cols:
-          record[f"{ac} (الرئيسي)"] = row_m.get(ac, "")
+          record[f"{ac} (الرئيسي)"] = row.get(f"{ac}_m", "")
           record[f"{ac} (المقارنة)"] = "غير موجود"
         record["الحالة"] = "موجود في الرئيسي فقط"
         diff_records.append(record)
 
-      elif not in_main and in_new:
+      elif merge_status == "right_only":
         code_diff_count += 1
-        row_n = dict_new[idx]
         record = {"الكود": idx}
         for pc in phone_cols:
           record[f"{pc} (الرئيسي)"] = "غير موجود"
-          record[f"{pc} (المقارنة)"] = row_n.get(pc, "")
+          record[f"{pc} (المقارنة)"] = row.get(f"{pc}_n", "")
         for cic in city_cols:
           record[f"{cic} (الرئيسي)"] = "غير موجود"
-          record[f"{cic} (المقارنة)"] = row_n.get(cic, "")
+          record[f"{cic} (المقارنة)"] = row.get(f"{cic}_n", "")
         for ac in address_cols:
           record[f"{ac} (الرئيسي)"] = "غير موجود"
-          record[f"{ac} (المقارنة)"] = row_n.get(ac, "")
+          record[f"{ac} (المقارنة)"] = row.get(f"{ac}_n", "")
         record["الحالة"] = "الكود غير موجود بقاعدة البيانات السابقة"
         diff_records.append(record)
 
