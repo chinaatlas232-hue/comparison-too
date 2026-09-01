@@ -336,8 +336,15 @@ if (
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-# أولاً: عرض الجدول مباشرة في الأعلى (تم تصحيح العنوان ونظيفاً)
-st.subheader("📋 جدول الاختلافات:")
+# أولاً: عرض عنوان الجدول مضبوط الاتجاه بلغة HTML لمنع أي قلب للحروف
+st.markdown(
+    """
+    <div style="direction: rtl; text-align: right; font-size: 20px; font-weight: bold; margin-bottom: 10px;">
+        📋 جدول الاختلافات:
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 if not diff_df.empty:
   df_display = diff_df.copy()
@@ -420,8 +427,15 @@ else:
 
 st.markdown("---")
 
-# ثانياً: مربعات الفلترة في الأسفل
-st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
+# ثانياً: مربعات الفلترة في الأسفل مع تثبيت اتجاه النص الصحيح
+st.markdown(
+    """
+    <div style="direction: rtl; text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+        📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 cols = st.columns(7)
 
