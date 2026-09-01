@@ -336,8 +336,6 @@ if (
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
-
 cols = st.columns(7)
 
 with cols[0]:
