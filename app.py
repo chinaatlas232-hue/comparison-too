@@ -494,24 +494,24 @@ if not diff_df.empty:
             " #e5e7eb; font-size: 14px;"
         )
 
-        # التلوين يتم فقط للخلايا التي تحتوي على بيانات مختلفة بناءً على عمود الحالة أو اسم العمود
+        # تخصيص تلوين دقيق لكل نوع اختلاف بشكل مستقل ومحدد
         if col_name == "الحالة":
           cell_style += " background-color: #fee2e2 !important; color: #b91c1c; font-weight: bold;"
-        elif "(الرئيسي)" in col_name or "(المقارنة)" in col_name:
-          base_col_name = (
-              col_name.replace(" (الرئيسي)", "")
-              .replace(" (المقارنة)", "")
-              .strip()
-          )
-          # التحقق مما إذا كان نوع هذا الحقل ضمن الفروقات الموجودة في خانة الحالة لهذا الصف
+        elif col_name == "الكود":
           if (
-              ("هاتف" in status_text and "هاتف" in base_col_name)
-              or ("مدينة" in status_text and "مدين" in base_col_name)
-              or ("عنوان" in status_text and "عنوان" in base_col_name)
-              or ("موجود في الرئيسي فقط" in status_text)
-              or ("الكود غير موجود بقاعدة البيانات السابقة" in status_text)
+              "موجود في الرئيسي فقط" in status_text
+              or "الكود غير موجود بقاعدة البيانات السابقة" in status_text
           ):
-            cell_style += " background-color: #fef3c7 !important; color: #92400e; font-weight: bold;"
+            cell_style += " background-color: #dbeafe !important; color: #1d4ed8; font-weight: bold;"
+        elif any(w in col_name for w in ["هاتف", "رقم", "phone"]):
+          if "هاتف" in status_text or "موجود في الرئيسي فقط" in status_text or "الكود غير موجود بقاعدة البيانات السابقة" in status_text:
+            cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
+        elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
+          if "مدينة" in status_text or "موجود في الرئيسي فقط" in status_text or "الكود غير موجود بقاعدة البيانات السابقة" in status_text:
+            cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
+        elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
+          if "عنوان" in status_text or "موجود في الرئيسي فقط" in status_text or "الكود غير موجود بقاعدة البيانات السابقة" in status_text:
+            cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
 
         cells_html += f'<td style="{cell_style}">{val}</td>'
 
