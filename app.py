@@ -89,7 +89,6 @@ with col2:
     with open(new_file_path, "wb") as f:
       f.write(uploaded_new.getbuffer())
 
-# الاعتماد الأساسي على الملفات المحفوظة في مجلد السيرفر لضمان ثباتها
 active_main = (
     main_file_path
     if os.path.exists(main_file_path)
@@ -114,7 +113,8 @@ def load_data(file1, file2):
 
 
 # تهيئة المتغيرات الافتراضية
-c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_address_diff = (
+c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = (
+    0,
     0,
     0,
     0,
@@ -132,6 +132,7 @@ if (
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
+    # تحديد أعمدة الكود، الهاتف، المدينة، والعنوان بذكاء
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
@@ -143,14 +144,23 @@ if (
         (
             c
             for c in common_cols
-            if "هاتف" in str(c) or "phone" in str(c).lower()
+            if "هاتف" in str(c)
+            or "رقم" in str(c)
+            or "phone" in str(c).lower()
         ),
         None,
     )
-    if not phone_col and len(common_cols) > 1:
-      phone_col = [c for c in common_cols if c != code_col][0]
-    elif not phone_col:
-      phone_col = code_col
+
+    city_col = next(
+        (
+            c
+            for c in common_cols
+            if "مدين" in str(c)
+            or "city" in str(c).lower()
+            or "محافظ" in str(c)
+        ),
+        None,
+    )
 
     address_col = next(
         (
@@ -162,13 +172,10 @@ if (
         ),
         None,
     )
-    if not address_col:
-      remaining_cols = [
-          c for c in common_cols if c != code_col and c != phone_col
-      ]
-      address_col = remaining_cols[0] if remaining_cols else phone_col
 
     def clean_series(series):
+      if series is None:
+        return pd.Series([""] * len(df_main))
       return (
           series.astype(str)
           .str.replace(r"\.0$", "", regex=True)
@@ -181,88 +188,136 @@ if (
     df_m = df_main.copy()
     df_n = df_new.copy()
 
-    df_m["clean_id"] = clean_series(df_m[code_col])
-    df_n["clean_id"] = clean_series(df_n[code_col])
+    df_m["clean_id"] = clean_series(df_m[code_col] if code_col else None)
+    df_n["clean_id"] = clean_series(df_n[code_col] if code_col else None)
 
-    df_m["clean_phone"] = clean_series(df_m[phone_col])
-    df_n["clean_phone"] = clean_series(df_n[phone_col])
+    df_m["clean_phone"] = clean_series(
+        df_m[phone_col] if phone_col and phone_col in df_m.columns else None
+    )
+    df_n["clean_phone"] = clean_series(
+        df_n[phone_col] if phone_col and phone_col in df_n.columns else None
+    )
 
-    df_m["clean_addr"] = clean_series(df_m[address_col])
-    df_n["clean_addr"] = clean_series(df_n[address_col])
+    df_m["clean_city"] = clean_series(
+        df_m[city_col] if city_col and city_col in df_m.columns else None
+    )
+    df_n["clean_city"] = clean_series(
+        df_n[city_col] if city_col and city_col in df_n.columns else None
+    )
+
+    df_m["clean_addr"] = clean_series(
+        df_m[address_col]
+        if address_col and address_col in df_m.columns
+        else None
+    )
+    df_n["clean_addr"] = clean_series(
+        df_n[address_col]
+        if address_col and address_col in df_n.columns
+        else None
+    )
 
     c_main = len(df_m["clean_id"].unique())
     c_new = len(df_n["clean_id"].unique())
 
-    dict_new_phone = dict(zip(df_n["clean_id"], df_n["clean_phone"]))
     dict_main_phone = dict(zip(df_m["clean_id"], df_m["clean_phone"]))
-    dict_new_addr = dict(zip(df_n["clean_id"], df_n["clean_addr"]))
+    dict_new_phone = dict(zip(df_n["clean_id"], df_n["clean_phone"]))
+
+    dict_main_city = dict(zip(df_m["clean_id"], df_m["clean_city"]))
+    dict_new_city = dict(zip(df_n["clean_id"], df_n["clean_city"]))
+
     dict_main_addr = dict(zip(df_m["clean_id"], df_m["clean_addr"]))
+    dict_new_addr = dict(zip(df_n["clean_id"], df_n["clean_addr"]))
 
     diff_records = []
     code_diff_count = 0
     phone_diff_count = 0
+    city_diff_count = 0
     address_diff_count = 0
 
     all_ids = set(dict_main_phone.keys()).union(set(dict_new_phone.keys()))
+
+    p_col_name = phone_col if phone_col else "الهاتف"
+    ci_col_name = city_col if city_col else "المدينة"
+    a_col_name = address_col if address_col else "العنوان"
 
     for idx in all_ids:
       in_main = idx in dict_main_phone
       in_new = idx in dict_new_phone
 
       if in_main and in_new:
-        p_main = dict_main_phone[idx]
-        p_new = dict_new_phone[idx]
-        a_main = dict_main_addr[idx]
-        a_new = dict_new_addr[idx]
+        p_main = dict_main_phone.get(idx, "")
+        p_new = dict_new_phone.get(idx, "")
+        ci_main = dict_main_city.get(idx, "")
+        ci_new = dict_new_city.get(idx, "")
+        a_main = dict_main_addr.get(idx, "")
+        a_new = dict_new_addr.get(idx, "")
 
         has_phone_diff = p_main != p_new
+        has_city_diff = ci_main != ci_new
         has_addr_diff = a_main != a_new
 
-        if has_phone_diff or has_addr_diff:
+        if has_phone_diff or has_city_diff or has_addr_diff:
           if has_phone_diff:
             phone_diff_count += 1
+          if has_city_diff:
+            city_diff_count += 1
           if has_addr_diff:
             address_diff_count += 1
 
-          if has_phone_diff and has_addr_diff:
-            status_label = "اختلاف هاتف وعنوان"
-          elif has_phone_diff:
-            status_label = "اختلاف رقم الهاتف"
-          else:
-            status_label = "اختلاف العنوان"
+          diff_labels = []
+          if has_phone_diff:
+            diff_labels.append("هاتف")
+          if has_city_diff:
+            diff_labels.append("مدينة")
+          if has_addr_diff:
+            diff_labels.append("عنوان")
+
+          status_label = "اختلاف " + " و ".join(diff_labels)
 
           diff_records.append({
               "الكود": idx,
-              f"{phone_col} (الرئيسي)": p_main,
-              f"{phone_col} (المقارنة)": p_new,
-              f"{address_col} (الرئيسي)": a_main,
-              f"{address_col} (المقارنة)": a_new,
+              f"{p_col_name} (الرئيسي)": p_main,
+              f"{p_col_name} (المقارنة)": p_new,
+              f"{ci_col_name} (الرئيسي)": ci_main,
+              f"{ci_col_name} (المقارنة)": ci_new,
+              f"{a_col_name} (الرئيسي)": a_main,
+              f"{a_col_name} (المقارنة)": a_new,
               "الحالة": status_label,
           })
       elif in_main and not in_new:
         code_diff_count += 1
         diff_records.append({
             "الكود": idx,
-            f"{phone_col} (الرئيسي)": dict_main_phone[idx],
-            f"{phone_col} (المقارنة)": "غير موجود",
-            f"{address_col} (الرئيسي)": dict_main_addr[idx],
-            f"{address_col} (المقارنة)": "غير موجود",
+            f"{p_col_name} (الرئيسي)": dict_main_phone.get(idx, ""),
+            f"{p_col_name} (المقارنة)": "غير موجود",
+            f"{ci_col_name} (الرئيسي)": dict_main_city.get(idx, ""),
+            f"{ci_col_name} (المقارنة)": "غير موجود",
+            f"{a_col_name} (الرئيسي)": dict_main_addr.get(idx, ""),
+            f"{a_col_name} (المقارنة)": "غير موجود",
             "الحالة": "موجود في الرئيسي فقط",
         })
       elif not in_main and in_new:
         code_diff_count += 1
         diff_records.append({
             "الكود": idx,
-            f"{phone_col} (الرئيسي)": "غير موجود",
-            f"{phone_col} (المقارنة)": dict_new_phone[idx],
-            f"{address_col} (الرئيسي)": "غير موجود",
-            f"{address_col} (المقارنة)": dict_new_addr[idx],
+            f"{p_col_name} (الرئيسي)": "غير موجود",
+            f"{p_col_name} (المقارنة)": dict_new_phone.get(idx, ""),
+            f"{ci_col_name} (الرئيسي)": "غير موجود",
+            f"{ci_col_name} (المقارنة)": dict_new_city.get(idx, ""),
+            f"{a_col_name} (الرئيسي)": "غير موجود",
+            f"{a_col_name} (المقارنة)": dict_new_addr.get(idx, ""),
             "الحالة": "الكود غير موجود بقاعدة البيانات السابقة",
         })
 
-    c_diff = code_diff_count + phone_diff_count + address_diff_count
+    c_diff = (
+        code_diff_count
+        + phone_diff_count
+        + city_diff_count
+        + address_diff_count
+    )
     c_code_diff = code_diff_count
     c_phone_diff = phone_diff_count
+    c_city_diff = city_diff_count
     c_address_diff = address_diff_count
 
     diff_df = pd.DataFrame(diff_records)
@@ -273,7 +328,6 @@ if (
 st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-# تنسيق الأزرار (خط بحجم 16px بدون خلفيات ملونة للمربعات)
 st.markdown(
     """
     <style>
@@ -292,9 +346,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-cols = st.columns(6)
+cols = st.columns(7)
 
 with cols[0]:
+  if st.button(
+      f"🏙️ المدينة\n\n{c_city_diff}", use_container_width=True, key="click_city"
+  ):
+    st.session_state["active_filter"] = "فروقات المدينة"
+
+with cols[1]:
   if st.button(
       f"🏠 العنوان\n\n{c_address_diff}",
       use_container_width=True,
@@ -302,31 +362,31 @@ with cols[0]:
   ):
     st.session_state["active_filter"] = "فروقات العنوان"
 
-with cols[1]:
+with cols[2]:
   if st.button(
       f"📞 الهاتف\n\n{c_phone_diff}", use_container_width=True, key="click_phone"
   ):
     st.session_state["active_filter"] = "فروقات الهاتف"
 
-with cols[2]:
+with cols[3]:
   if st.button(
       f"🔑 الكود\n\n{c_code_diff}", use_container_width=True, key="click_code"
   ):
     st.session_state["active_filter"] = "فروقات الكود"
 
-with cols[3]:
+with cols[4]:
   if st.button(
       f"⚠️ الإجمالي\n\n{c_diff}", use_container_width=True, key="click_diff"
   ):
     st.session_state["active_filter"] = "الكل"
 
-with cols[4]:
+with cols[5]:
   if st.button(
       f"📁 المقارنة\n\n{c_new}", use_container_width=True, key="click_new"
   ):
     st.session_state["active_filter"] = "المقارنة"
 
-with cols[5]:
+with cols[6]:
   if st.button(
       f"📦 الرئيسي\n\n{c_main}", use_container_width=True, key="click_main"
   ):
@@ -357,13 +417,11 @@ if not diff_df.empty:
         )
     ]
   elif current_filter == "فروقات الهاتف":
-    df_display = df_display[
-        df_display["الحالة"].str.contains("الهاتف|هاتف وعنوان", na=False)
-    ]
+    df_display = df_display[df_display["الحالة"].str.contains("هاتف", na=False)]
+  elif current_filter == "فروقات المدينة":
+    df_display = df_display[df_display["الحالة"].str.contains("مدينة", na=False)]
   elif current_filter == "فروقات العنوان":
-    df_display = df_display[
-        df_display["الحالة"].str.contains("العنوان|هاتف وعنوان", na=False)
-    ]
+    df_display = df_display[df_display["الحالة"].str.contains("عنوان", na=False)]
   elif current_filter == "الرئيسي":
     df_display = df_display[
         df_display["الحالة"].str.contains("موجود في الرئيسي فقط", na=False)
@@ -394,8 +452,8 @@ if not diff_df.empty:
     rows_html = ""
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
-      is_phone_diff = "الهاتف" in status_text or "العنوان" in status_text
-      row_bg = "background-color: #faf5ff;" if is_phone_diff else ""
+      is_diff = "اختلاف" in status_text
+      row_bg = "background-color: #faf5ff;" if is_diff else ""
 
       cells_html = (
           f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
