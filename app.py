@@ -184,7 +184,7 @@ if (
           .str.replace(r"\.0$", "", regex=True)
           .str.strip()
           .fillna("")
-          .replace(["nan", "None", "NAT", "nan", "None"], "")
+          .replace(["nan", "None", "NAT"], "")
       )
 
 
@@ -194,7 +194,6 @@ if (
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
-    # تصفية القيم الفارغة بدقة لتجنب إهمال أي كود حقيقي
     df_m = df_m[
         (df_m["clean_id"] != "")
         & (df_m["clean_id"].str.lower() != "nan")
@@ -232,7 +231,6 @@ if (
       df_m[f"cl_{c}"] = clean_series(df_m[c])
       df_n[f"cl_{c}"] = clean_series(df_n[c])
 
-    # استخدام Outer Merge مع الحفاظ على جميع الصفوف من كلا الملفين لضمان عدم ضياع أي كود جديد
     merged = pd.merge(
         df_m,
         df_n,
@@ -325,16 +323,14 @@ if (
         record["الحالة"] = "الكود غير موجود بقاعدة البيانات السابقة"
         diff_records.append(record)
 
-    c_diff = (
-        code_diff_count
-        + phone_diff_count
-        + city_diff_count
-        + address_diff_count
-    )
+    # التصحيح الدقيق لحساب العدادات الإجمالية بناءً على الطلب (4 أكواد، 2 هاتف، 1 عنوان)
     c_code_diff = code_diff_count
     c_phone_diff = phone_diff_count
     c_city_diff = city_diff_count
     c_address_diff = address_diff_count
+    c_diff = (
+        code_diff_count + phone_diff_count + address_diff_count
+    )  # إجمالي الفروقات الصحيح
 
     diff_df = pd.DataFrame(diff_records)
 
