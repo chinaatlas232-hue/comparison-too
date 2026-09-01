@@ -77,11 +77,16 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-UPLOAD_DIR = "saved_files"
+# تظليل المتغيرات باللون الأحمر: UPLOAD_DIR, main_file_path, new_file_path
+UPLOAD_DIR = <span style="color:red; font-weight:bold;">"saved_files"</span>
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
-new_file_path = os.path.join(UPLOAD_DIR, "new_file.xlsx")
+main_file_path = os.path.join(
+    UPLOAD_DIR, <span style="color:red; font-weight:bold;">"master_file.xlsx"</span>
+)
+new_file_path = os.path.join(
+    UPLOAD_DIR, <span style="color:red; font-weight:bold;">"new_file.xlsx"</span>
+)
 
 with st.sidebar:
   st.markdown("### 📁 إدارة الملفات")
@@ -90,7 +95,6 @@ with st.sidebar:
       "الملف الرئيسي (Master File)", type=["xlsx", "xls"], key="main_file"
   )
   if uploaded_main is not None:
-    # حذف الملف القديم لضمان كتابة الملف الجديد المحدث فوراً
     if os.path.exists(main_file_path):
       os.remove(main_file_path)
     with open(main_file_path, "wb") as f:
@@ -102,7 +106,6 @@ with st.sidebar:
       "الملف المراد مقارنته (New File)", type=["xlsx", "xls"], key="new_file"
   )
   if uploaded_new is not None:
-    # حذف الملف القديم لضمان كتابة الملف الجديد المحدث فوراً
     if os.path.exists(new_file_path):
       os.remove(new_file_path)
     with open(new_file_path, "wb") as f:
@@ -125,6 +128,7 @@ with st.sidebar:
     st.query_params.clear()
     st.rerun()
 
+# المتغيرات النشطة للملفات: active_main, active_new
 active_main = (
     main_file_path
     if os.path.exists(main_file_path)
@@ -146,7 +150,6 @@ if "filter" in st.query_params:
     st.rerun()
 
 
-# دالة قراءة الملفات بدون تخزين مؤقت قديم لضمان قراءة التعديلات فوراً
 def load_and_clean_data(file1, file2):
   df1 = pd.read_excel(file1, sheet_name=0)
   df2 = pd.read_excel(file2, sheet_name=0)
@@ -155,27 +158,38 @@ def load_and_clean_data(file1, file2):
   return df1, df2
 
 
-c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = (
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-)
-diff_df = pd.DataFrame()
+# متغيرات العدادات والإجماليات باللون الأحمر لتمييزها
+<span style="color:red; font-weight:bold;">c_main</span>, <span style="
+    color: red; font-weight: bold;
+">c_new</span>, <span style="color:red; font-weight:bold;">c_diff</span>, <span style="
+    color: red; font-weight: bold;
+">c_code_diff</span>, <span style="color:red; font-weight:bold;">c_phone_diff</span>, <span style="
+    color: red; font-weight: bold;
+">c_city_diff</span>, <span style="
+    color: red; font-weight: bold;
+">c_address_diff</span> = (0, 0, 0, 0, 0, 0, 0)
+<span style="color:red; font-weight:bold;">diff_df</span> = pd.DataFrame()
 
 if (
     os.path.exists(main_file_path) and os.path.exists(new_file_path)
 ) or (active_main and active_new):
   try:
-    df_main, df_new = load_and_clean_data(active_main, active_new)
+    # متغيرات البيانات الرئيسية والمقارنة: df_main, df_new
+    <span style="color:red; font-weight:bold;">df_main</span>, <span style="
+        color: red; font-weight: bold;
+    ">df_new</span> = load_and_clean_data(active_main, active_new)
 
-    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
+    <span style="color:red; font-weight:bold;">common_cols</span> = list(
+        set(df_main.columns).intersection(set(df_new.columns))
+    )
 
-    code_col = next(
-        (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
+    # متغير عمود الكود: code_col
+    <span style="color:red; font-weight:bold;">code_col</span> = next(
+        (
+            c
+            for c in common_cols
+            if "كود" in str(c) or "code" in str(c).lower()
+        ),
         None,
     )
     if not code_col:
@@ -194,13 +208,12 @@ if (
       )
 
 
-    df_m = df_main.copy()
-    df_n = df_new.copy()
+    <span style="color:red; font-weight:bold;">df_m</span> = df_main.copy()
+    <span style="color:red; font-weight:bold;">df_n</span> = df_new.copy()
 
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
-    # تصفية الصقور الفارغة وغير الصالحة
     df_m = df_m[
         (df_m["clean_id"] != "")
         & (df_m["clean_id"].str.lower() != "nan")
@@ -215,21 +228,21 @@ if (
     c_main = len(df_m["clean_id"].unique())
     c_new = len(df_n["clean_id"].unique())
 
-    # إزالة التكرارات للأمان
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_n = df_n.drop_duplicates(subset=["clean_id"], keep="last")
 
-    phone_cols = [
+    # أعمدة الهواتف، المدن، والعناوين الإضافية المظللة بالاحمر
+    <span style="color:red; font-weight:bold;">phone_cols</span> = [
         c
         for c in common_cols
         if "هاتف" in str(c) or "رقم" in str(c) or "phone" in str(c).lower()
     ]
-    city_cols = [
+    <span style="color:red; font-weight:bold;">city_cols</span> = [
         c
         for c in common_cols
         if "مدين" in str(c) or "city" in str(c).lower() or "محافظ" in str(c)
     ]
-    address_cols = [
+    <span style="color:red; font-weight:bold;">address_cols</span> = [
         c
         for c in common_cols
         if "عنوان" in str(c)
@@ -238,13 +251,12 @@ if (
         or "استلام" in str(c)
     ]
 
-    # تنظيف الأعمدة المعنية مسبقاً لتسريع المقارنة
     for c in phone_cols + city_cols + address_cols:
       df_m[f"cl_{c}"] = clean_series(df_m[c])
       df_n[f"cl_{c}"] = clean_series(df_n[c])
 
-    # دمج البيانات عبر الـ Merge السريع جداً (Vectorized Merge)
-    merged = pd.merge(
+    # جدول الدمج: merged
+    <span style="color:red; font-weight:bold;">merged</span> = pd.merge(
         df_m,
         df_n,
         on="clean_id",
@@ -253,7 +265,7 @@ if (
         indicator=True,
     )
 
-    diff_records = []
+    <span style="color:red; font-weight:bold;">diff_records</span> = []
     code_diff_count = 0
     phone_diff_count = 0
     city_diff_count = 0
