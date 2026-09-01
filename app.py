@@ -23,39 +23,39 @@ st.markdown(
         background-color: rgba(180, 180, 180, 0.72) !important;
     }
     
-    /* تصميم البطاقات الملونة البديلة للأزرار */
+    /* تصميم البطاقات الملونة البديلة للأزرار مع فرض الألوان بـ important */
     .custom-card {
-        border-radius: 8px;
-        padding: 12px 8px;
-        text-align: center;
-        cursor: pointer;
+        border-radius: 10px !important;
+        padding: 14px 10px !important;
+        text-align: center !important;
+        cursor: pointer !important;
         text-decoration: none !important;
-        display: block;
-        transition: transform 0.1s ease, box-shadow 0.1s ease;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        display: block !important;
+        transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08) !important;
     }
     .custom-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+        transform: translateY(-3px) !important;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
     }
     
-    /* ألوان البطاقات */
-    .card-city { background-color: rgba(34, 197, 94, 0.25); border: 1px solid rgba(34, 197, 94, 0.4); color: #15803d; }
-    .card-addr { background-color: rgba(234, 179, 8, 0.25); border: 1px solid rgba(234, 179, 8, 0.4); color: #a16207; }
-    .card-phone { background-color: rgba(249, 115, 22, 0.25); border: 1px solid rgba(249, 115, 22, 0.4); color: #c2410c; }
-    .card-code { background-color: rgba(59, 130, 246, 0.25); border: 1px solid rgba(59, 130, 246, 0.4); color: #1d4ed8; }
-    .card-diff { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #b91c1c; }
-    .card-new { background-color: rgba(168, 85, 247, 0.25); border: 1px solid rgba(168, 85, 247, 0.4); color: #7e22ce; }
-    .card-main { background-color: rgba(107, 114, 128, 0.25); border: 1px solid rgba(107, 114, 128, 0.4); color: #374151; }
+    /* ألوان وخلفيات البطاقات الثابتة */
+    .card-city { background-color: #dcfce7 !important; border: 1px solid #22c55e !important; color: #15803d !important; }
+    .card-addr { background-color: #fef9c3 !important; border: 1px solid #eab308 !important; color: #a16207 !important; }
+    .card-phone { background-color: #ffedd5 !important; border: 1px solid #f97316 !important; color: #c2410c !important; }
+    .card-code { background-color: #dbeafe !important; border: 1px solid #3b82f6 !important; color: #1d4ed8 !important; }
+    .card-diff { background-color: #fee2e2 !important; border: 1px solid #ef4444 !important; color: #b91c1c !important; }
+    .card-new { background-color: #f3e8ff !important; border: 1px solid #a855f7 !important; color: #7e22ce !important; }
+    .card-main { background-color: #f3f4f6 !important; border: 1px solid #6b7280 !important; color: #374151 !important; }
 
     .card-title {
-        font-size: 15px;
-        font-weight: bold;
-        margin-bottom: 8px;
+        font-size: 14px !important;
+        font-weight: bold !important;
+        margin-bottom: 6px !important;
     }
     .card-value {
-        font-size: 18px;
-        font-weight: bold;
+        font-size: 18px !important;
+        font-weight: bold !important;
     }
 
     /* زر تحميل الإكسل أخضر فاتح */
@@ -486,7 +486,7 @@ if not diff_df.empty:
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
       is_diff = "اختلاف" in status_text
-      row_bg = "background-color: #faf5ff;" if is_diff else ""
+      row_bg = "background-color: #faf5ff !important;" if is_diff else ""
 
       cells_html = (
           f'<td style="padding: 10px; text-align: center; border-bottom: 1px'
