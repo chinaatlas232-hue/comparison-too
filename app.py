@@ -336,7 +336,80 @@ if (
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-# أولاً: عرض عنوان الجدول مضبوط الاتجاه بلغة HTML لمنع أي قلب للحروف
+# أولاً: مربعات الفلترة في الأعلى
+st.markdown(
+    """
+    <div style="direction: rtl; text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+        📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+cols = st.columns(7)
+
+with cols[0]:
+  if st.button(
+      f"🏙️ المدينة\n\n{c_city_diff}", use_container_width=True, key="click_city"
+  ):
+    st.session_state["active_filter"] = "فروقات المدينة"
+    st.rerun()
+
+with cols[1]:
+  if st.button(
+      f"🏠 العنوان\n\n{c_address_diff}",
+      use_container_width=True,
+      key="click_addr",
+  ):
+    st.session_state["active_filter"] = "فروقات العنوان"
+    st.rerun()
+
+with cols[2]:
+  if st.button(
+      f"📞 الهاتف\n\n{c_phone_diff}", use_container_width=True, key="click_phone"
+  ):
+    st.session_state["active_filter"] = "فروقات الهاتف"
+    st.rerun()
+
+with cols[3]:
+  if st.button(
+      f"🔑 الكود\n\n{c_code_diff}", use_container_width=True, key="click_code"
+  ):
+    st.session_state["active_filter"] = "فروقات الكود"
+    st.rerun()
+
+with cols[4]:
+  if st.button(
+      f"⚠️ الإجمالي\n\n{c_diff}", use_container_width=True, key="click_diff"
+  ):
+    st.session_state["active_filter"] = "الكل"
+    st.rerun()
+
+with cols[5]:
+  if st.button(
+      f"📁 المقارنة\n\n{c_new}", use_container_width=True, key="click_new"
+  ):
+    st.session_state["active_filter"] = "المقارنة"
+    st.rerun()
+
+with cols[6]:
+  if st.button(
+      f"📦 الرئيسي\n\n{c_main}", use_container_width=True, key="click_main"
+  ):
+    st.session_state["active_filter"] = "الرئيسي"
+    st.rerun()
+
+st.markdown(
+    f"<div style='text-align: center; margin: 15px 0; font-size: 16px;"
+    f" font-weight: bold; color: #4F46E5; direction: rtl;'>الفلتر النشط حالياً:"
+    f" <span style='background: #e0e7ff; padding: 6px 16px; border-radius:"
+    f" 8px;'>{st.session_state['active_filter']}</span></div>",
+    unsafe_allow_html=True,
+)
+
+st.markdown("---")
+
+# ثانياً: عرض عنوان الجدول والجدول في الأسفل
 st.markdown(
     """
     <div style="direction: rtl; text-align: right; font-size: 20px; font-weight: bold; margin-bottom: 10px;">
@@ -424,76 +497,3 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info("لا توجد اختلافات بين الملفين أو لم يتم رفع الملفات بعد.")
-
-st.markdown("---")
-
-# ثانياً: مربعات الفلترة في الأسفل مع تثبيت اتجاه النص الصحيح
-st.markdown(
-    """
-    <div style="direction: rtl; text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
-        📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-cols = st.columns(7)
-
-with cols[0]:
-  if st.button(
-      f"🏙️ المدينة\n\n{c_city_diff}", use_container_width=True, key="click_city"
-  ):
-    st.session_state["active_filter"] = "فروقات المدينة"
-    st.rerun()
-
-with cols[1]:
-  if st.button(
-      f"🏠 العنوان\n\n{c_address_diff}",
-      use_container_width=True,
-      key="click_addr",
-  ):
-    st.session_state["active_filter"] = "فروقات العنوان"
-    st.rerun()
-
-with cols[2]:
-  if st.button(
-      f"📞 الهاتف\n\n{c_phone_diff}", use_container_width=True, key="click_phone"
-  ):
-    st.session_state["active_filter"] = "فروقات الهاتف"
-    st.rerun()
-
-with cols[3]:
-  if st.button(
-      f"🔑 الكود\n\n{c_code_diff}", use_container_width=True, key="click_code"
-  ):
-    st.session_state["active_filter"] = "فروقات الكود"
-    st.rerun()
-
-with cols[4]:
-  if st.button(
-      f"⚠️ الإجمالي\n\n{c_diff}", use_container_width=True, key="click_diff"
-  ):
-    st.session_state["active_filter"] = "الكل"
-    st.rerun()
-
-with cols[5]:
-  if st.button(
-      f"📁 المقارنة\n\n{c_new}", use_container_width=True, key="click_new"
-  ):
-    st.session_state["active_filter"] = "المقارنة"
-    st.rerun()
-
-with cols[6]:
-  if st.button(
-      f"📦 الرئيسي\n\n{c_main}", use_container_width=True, key="click_main"
-  ):
-    st.session_state["active_filter"] = "الرئيسي"
-    st.rerun()
-
-st.markdown(
-    f"<div style='text-align: center; margin: 15px 0; font-size: 16px;"
-    f" font-weight: bold; color: #4F46E5; direction: rtl;'>الفلتر النشط حالياً:"
-    f" <span style='background: #e0e7ff; padding: 6px 16px; border-radius:"
-    f" 8px;'>{st.session_state['active_filter']}</span></div>",
-    unsafe_allow_html=True,
-)
