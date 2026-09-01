@@ -129,7 +129,6 @@ if (
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
-    # تحديد أعمدة الكود، الهاتف، المدينة، والعنوان بذكاء
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
         None,
@@ -324,24 +323,6 @@ if (
 
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
-st.markdown(
-    """
-    <style>
-    div.stButton > button:not([kind="secondary"]) {
-        background-color: transparent !important;
-        border: 1px solid rgba(49, 51, 63, 0.2) !important;
-        font-size: 16px !important;
-        font-weight: bold !important;
-    }
-    div.stButton > button:not([kind="secondary"]) p {
-        font-size: 16px !important;
-        font-weight: bold !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
 cols = st.columns(7)
 
 with cols[0]:
@@ -390,9 +371,9 @@ with cols[6]:
 
 st.markdown(
     f"<div style='text-align: center; margin: 15px 0; font-size: 16px;"
-    f" font-weight: bold; color: #4F46E5;'>الفلتر النشط حالياً: <span"
-    f" style='background: #e0e7ff; padding: 6px 16px; border-radius: 8px;'>"
-    f"{st.session_state['active_filter']}</span></div>",
+    f" font-weight: bold; color: #4F46E5; direction: rtl;'>الفلتر النشط حالياً:"
+    f" <span style='background: #e0e7ff; padding: 6px 16px; border-radius:"
+    f" 8px;'>{st.session_state['active_filter']}</span></div>",
     unsafe_allow_html=True,
 )
 
