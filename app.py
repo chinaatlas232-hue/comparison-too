@@ -174,9 +174,10 @@ if (
     if not code_col:
       code_col = common_cols[0]
 
+
     def clean_series(series):
       if series is None:
-        return pd.Series([""] * len(df_main))
+        return pd.Series([""] * len(series))
       return (
           series.astype(str)
           .str.replace(r"\.0$", "", regex=True)
@@ -184,7 +185,9 @@ if (
           .fillna("")
           .replace("nan", "")
           .replace("None", "")
+          .replace("NAT", "")
       )
+
 
     df_m = df_main.copy()
     df_n = df_new.copy()
@@ -192,12 +195,27 @@ if (
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
+    # استبعاد الصفوف ذات الكود الفارغ أو غير الصالح لمنع التداخل
+    df_m = df_m[
+        (df_m["clean_id"] != "")
+        & (df_m["clean_id"].str.lower() != "nan")
+        & (df_m["clean_id"].notna())
+    ]
+    df_n = df_n[
+        (df_n["clean_id"] != "")
+        & (df_n["clean_id"].str.lower() != "nan")
+        & (df_n["clean_id"].notna())
+    ]
+
     c_main = len(df_m["clean_id"].unique())
     c_new = len(df_n["clean_id"].unique())
 
-    # تحويل الملفات إلى قواميس (Dictionaries) مفهرسة بالكود لضمان مقارنة فائقة السرعة والدقة
-    dict_main = df_m.set_index("clean_id").to_dict(orient="index")
-    dict_new = df_n.set_index("clean_id").to_dict(orient="index")
+    # التعامل الآمن مع الأكواد المكررة عبر الاحتفاظ بآخر سجل أو دمجه
+    df_m_unique = df_m.drop_duplicates(subset=["clean_id"], keep="last")
+    df_n_unique = df_n.drop_duplicates(subset=["clean_id"], keep="last")
+
+    dict_main = df_m_unique.set_index("clean_id").to_dict(orient="index")
+    dict_new = df_n_unique.set_index("clean_id").to_dict(orient="index")
 
     diff_records = []
     code_diff_count = 0
@@ -207,7 +225,6 @@ if (
 
     all_ids = set(dict_main.keys()).union(set(dict_new.keys()))
 
-    # تحديد الأعمدة بمرونة عالية
     phone_cols = [
         c
         for c in common_cols
@@ -239,21 +256,18 @@ if (
         has_ci_diff = False
         has_a_diff = False
 
-        # فحص جميع أعضاء الهواتف (الهاتف الأول والثاني وغيرها)
         for pc in phone_cols:
           val_m = clean_series(pd.Series([row_m.get(pc, "")]))[0]
           val_n = clean_series(pd.Series([row_n.get(pc, "")]))[0]
           if val_m != val_n:
             has_p_diff = True
 
-        # فحص المحافظات / المدن
         for cic in city_cols:
           val_m = clean_series(pd.Series([row_m.get(cic, "")]))[0]
           val_n = clean_series(pd.Series([row_n.get(cic, "")]))[0]
           if val_m != val_n:
             has_ci_diff = True
 
-        # فحص العناوين / الاستلام
         for ac in address_cols:
           val_m = clean_series(pd.Series([row_m.get(ac, "")]))[0]
           val_n = clean_series(pd.Series([row_n.get(ac, "")]))[0]
@@ -278,7 +292,6 @@ if (
 
           status_label = "اختلاف " + " و ".join(diff_labels)
 
-          # دمج عرض البيانات للمقارنة
           record = {"الكود": idx}
           for pc in phone_cols:
             record[f"{pc} (الرئيسي)"] = row_m.get(pc, "")
