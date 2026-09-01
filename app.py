@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، وزر تحميل الإكسل الأخضر الفاتح
+# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، وزر تحميل الإكسل الأخضر الفاتح وإصلاح ارتفاع الأزرار العلوية
 st.markdown(
     """
     <style>
@@ -42,6 +42,17 @@ st.markdown(
     }
     div.stDownloadButton > button p {
         color: #15803d !important;
+    }
+    /* إصلاح عرض النص المقطوع في الأزرار العلوية المتعددة الأسطر */
+    div.stButton > button {
+        height: auto !important;
+        min-height: 75px !important;
+        white-space: pre-wrap !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+    }
+    div.stButton > button div {
+        white-space: pre-wrap !important;
     }
     </style>
     """,
