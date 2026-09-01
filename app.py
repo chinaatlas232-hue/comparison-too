@@ -7,7 +7,7 @@ st.set_page_config(
     page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
 )
 
-# تعديل التصميم: الهوامش، القائمة الجانبية الرمادية، زر الإكسل الأخضر الفاتح، وتلوين الأزرار السبعة بألوان فاتحة ومختلفة
+# تعديل التصميم وتلوين كل زر بفئة (Class) خاصة به بدقة
 st.markdown(
     """
     <style>
@@ -20,97 +20,69 @@ st.markdown(
     }
     
     /* 1. زر المدينة (أخضر فاتح) */
-    div[data-testid="column"]:nth-of-type(1) div.stButton > button {
+    div.btn-city button {
         background-color: rgba(34, 197, 94, 0.25) !important;
         color: #15803d !important;
         border: 1px solid rgba(34, 197, 94, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(1) div.stButton > button p {
-        color: #15803d !important;
-    }
-    div[data-testid="column"]:nth-of-type(1) div.stButton > button:hover {
-        background-color: rgba(34, 197, 94, 0.4) !important;
-    }
+    div.btn-city button p { color: #15803d !important; }
+    div.btn-city button:hover { background-color: rgba(34, 197, 94, 0.4) !important; }
 
     /* 2. زر العنوان (أصفر فاتح) */
-    div[data-testid="column"]:nth-of-type(2) div.stButton > button {
+    div.btn-addr button {
         background-color: rgba(234, 179, 8, 0.25) !important;
         color: #a16207 !important;
         border: 1px solid rgba(234, 179, 8, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(2) div.stButton > button p {
-        color: #a16207 !important;
-    }
-    div[data-testid="column"]:nth-of-type(2) div.stButton > button:hover {
-        background-color: rgba(234, 179, 8, 0.4) !important;
-    }
+    div.btn-addr button p { color: #a16207 !important; }
+    div.btn-addr button:hover { background-color: rgba(234, 179, 8, 0.4) !important; }
 
     /* 3. زر الهاتف (برتقالي فاتح) */
-    div[data-testid="column"]:nth-of-type(3) div.stButton > button {
+    div.btn-phone button {
         background-color: rgba(249, 115, 22, 0.25) !important;
         color: #c2410c !important;
         border: 1px solid rgba(249, 115, 22, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(3) div.stButton > button p {
-        color: #c2410c !important;
-    }
-    div[data-testid="column"]:nth-of-type(3) div.stButton > button:hover {
-        background-color: rgba(249, 115, 22, 0.4) !important;
-    }
+    div.btn-phone button p { color: #c2410c !important; }
+    div.btn-phone button:hover { background-color: rgba(249, 115, 22, 0.4) !important; }
 
-    /* 4. زر الكود (أزرق سماوي/فاتح) */
-    div[data-testid="column"]:nth-of-type(4) div.stButton > button {
+    /* 4. زر الكود (أزرق سماوي فاتح) */
+    div.btn-code button {
         background-color: rgba(59, 130, 246, 0.25) !important;
         color: #1d4ed8 !important;
         border: 1px solid rgba(59, 130, 246, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(4) div.stButton > button p {
-        color: #1d4ed8 !important;
-    }
-    div[data-testid="column"]:nth-of-type(4) div.stButton > button:hover {
-        background-color: rgba(59, 130, 246, 0.4) !important;
-    }
+    div.btn-code button p { color: #1d4ed8 !important; }
+    div.btn-code button:hover { background-color: rgba(59, 130, 246, 0.4) !important; }
 
     /* 5. زر الإجمالي (أحمر فاتح) */
-    div[data-testid="column"]:nth-of-type(5) div.stButton > button {
+    div.btn-diff button {
         background-color: rgba(239, 68, 68, 0.25) !important;
         color: #b91c1c !important;
         border: 1px solid rgba(239, 68, 68, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(5) div.stButton > button p {
-        color: #b91c1c !important;
-    }
-    div[data-testid="column"]:nth-of-type(5) div.stButton > button:hover {
-        background-color: rgba(239, 68, 68, 0.4) !important;
-    }
+    div.btn-diff button p { color: #b91c1c !important; }
+    div.btn-diff button:hover { background-color: rgba(239, 68, 68, 0.4) !important; }
 
     /* 6. زر المقارنة (بنفسجي فاتح) */
-    div[data-testid="column"]:nth-of-type(6) div.stButton > button {
+    div.btn-new button {
         background-color: rgba(168, 85, 247, 0.25) !important;
         color: #7e22ce !important;
         border: 1px solid rgba(168, 85, 247, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(6) div.stButton > button p {
-        color: #7e22ce !important;
-    }
-    div[data-testid="column"]:nth-of-type(6) div.stButton > button:hover {
-        background-color: rgba(168, 85, 247, 0.4) !important;
-    }
+    div.btn-new button p { color: #7e22ce !important; }
+    div.btn-new button:hover { background-color: rgba(168, 85, 247, 0.4) !important; }
 
     /* 7. زر الرئيسي (رصاصي فاتح) */
-    div[data-testid="column"]:nth-of-type(7) div.stButton > button {
+    div.btn-main button {
         background-color: rgba(107, 114, 128, 0.25) !important;
         color: #374151 !important;
         border: 1px solid rgba(107, 114, 128, 0.4) !important;
     }
-    div[data-testid="column"]:nth-of-type(7) div.stButton > button p {
-        color: #374151 !important;
-    }
-    div[data-testid="column"]:nth-of-type(7) div.stButton > button:hover {
-        background-color: rgba(107, 114, 128, 0.4) !important;
-    }
+    div.btn-main button p { color: #374151 !important; }
+    div.btn-main button:hover { background-color: rgba(107, 114, 128, 0.4) !important; }
 
-    /* تخصيص زر تحميل الإكسل باللون الأخضر الفاتح */
+    /* زر تحميل الإكسل أخضر فاتح */
     div.stDownloadButton > button {
         background-color: rgba(34, 197, 94, 0.2) !important;
         color: #15803d !important;
@@ -125,7 +97,7 @@ st.markdown(
         color: #15803d !important;
     }
     
-    /* منع قص النصوص في الأزرار وجعلها متناسقة */
+    /* تنسيق عام للأزرار */
     div.stButton > button {
         height: auto !important;
         min-height: 80px !important;
@@ -141,7 +113,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# إنشاء مجلد لحفظ الملفات على السيرفر لضمان ثباتها وعدم ضياعها
+# إنشاء مجلد لحفظ الملفات على السيرفر لضمان ثباتها
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -418,7 +390,7 @@ if (
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-# أولاً: مربعات الفلترة في الأعلى
+# أولاً: مربعات الفلترة في الأعلى مع إضافة فئات الألوان بدقة
 st.markdown(
     """
     <div style="direction: rtl; text-align: right; font-size: 18px; font-weight: bold; margin-bottom: 10px;">
@@ -431,13 +403,16 @@ st.markdown(
 cols = st.columns(7)
 
 with cols[0]:
+  st.markdown('<div class="btn-city">', unsafe_allow_html=True)
   if st.button(
       f"🏙️ المدينة\n\n{c_city_diff}", use_container_width=True, key="click_city"
   ):
     st.session_state["active_filter"] = "فروقات المدينة"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[1]:
+  st.markdown('<div class="btn-addr">', unsafe_allow_html=True)
   if st.button(
       f"🏠 العنوان\n\n{c_address_diff}",
       use_container_width=True,
@@ -445,41 +420,52 @@ with cols[1]:
   ):
     st.session_state["active_filter"] = "فروقات العنوان"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[2]:
+  st.markdown('<div class="btn-phone">', unsafe_allow_html=True)
   if st.button(
       f"📞 الهاتف\n\n{c_phone_diff}", use_container_width=True, key="click_phone"
   ):
     st.session_state["active_filter"] = "فروقات الهاتف"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[3]:
+  st.markdown('<div class="btn-code">', unsafe_allow_html=True)
   if st.button(
       f"🔑 الكود\n\n{c_code_diff}", use_container_width=True, key="click_code"
   ):
     st.session_state["active_filter"] = "فروقات الكود"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[4]:
+  st.markdown('<div class="btn-diff">', unsafe_allow_html=True)
   if st.button(
       f"⚠️ الإجمالي\n\n{c_diff}", use_container_width=True, key="click_diff"
   ):
     st.session_state["active_filter"] = "الكل"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[5]:
+  st.markdown('<div class="btn-new">', unsafe_allow_html=True)
   if st.button(
       f"📁 المقارنة\n\n{c_new}", use_container_width=True, key="click_new"
   ):
     st.session_state["active_filter"] = "المقارنة"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 with cols[6]:
+  st.markdown('<div class="btn-main">', unsafe_allow_html=True)
   if st.button(
       f"📦 الرئيسي\n\n{c_main}", use_container_width=True, key="click_main"
   ):
     st.session_state["active_filter"] = "الرئيسي"
     st.rerun()
+  st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown(
     f"<div style='text-align: center; margin: 15px 0; font-size: 16px;"
