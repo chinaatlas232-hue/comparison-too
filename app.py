@@ -90,6 +90,9 @@ with st.sidebar:
       "الملف الرئيسي (Master File)", type=["xlsx", "xls"], key="main_file"
   )
   if uploaded_main is not None:
+    # حذف الملف القديم لضمان كتابة الملف الجديد المحدث فوراً
+    if os.path.exists(main_file_path):
+      os.remove(main_file_path)
     with open(main_file_path, "wb") as f:
       f.write(uploaded_main.getbuffer())
 
@@ -99,6 +102,9 @@ with st.sidebar:
       "الملف المراد مقارنته (New File)", type=["xlsx", "xls"], key="new_file"
   )
   if uploaded_new is not None:
+    # حذف الملف القديم لضمان كتابة الملف الجديد المحدث فوراً
+    if os.path.exists(new_file_path):
+      os.remove(new_file_path)
     with open(new_file_path, "wb") as f:
       f.write(uploaded_new.getbuffer())
 
@@ -140,7 +146,7 @@ if "filter" in st.query_params:
     st.rerun()
 
 
-@st.cache_data
+# دالة قراءة الملفات بدون تخزين مؤقت قديم لضمان قراءة التعديلات فوراً
 def load_and_clean_data(file1, file2):
   df1 = pd.read_excel(file1, sheet_name=0)
   df2 = pd.read_excel(file2, sheet_name=0)
@@ -517,4 +523,3 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info("لا توجد اختلافات بين الملفين أو لم يتم رفع الملفات بعد.")
-
