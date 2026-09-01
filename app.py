@@ -56,6 +56,25 @@ main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
 new_file_path = os.path.join(UPLOAD_DIR, "new_file.xlsx")
 
 with st.sidebar:
+  st.markdown("### 📁 إدارة الملفات")
+
+  uploaded_main = st.file_uploader(
+      "الملف الرئيسي (Master File)", type=["xlsx", "xls"], key="main_file"
+  )
+  if uploaded_main is not None:
+    with open(main_file_path, "wb") as f:
+      f.write(uploaded_main.getbuffer())
+
+  st.markdown("---")
+
+  uploaded_new = st.file_uploader(
+      "الملف المراد مقارنته (New File)", type=["xlsx", "xls"], key="new_file"
+  )
+  if uploaded_new is not None:
+    with open(new_file_path, "wb") as f:
+      f.write(uploaded_new.getbuffer())
+
+  st.markdown("---")
   st.markdown("### ⚙️ إعدادات التحكم")
 
   if st.button("🗑️ مسح الملفات وإعادة ضبط التطبيق", use_container_width=True):
@@ -66,28 +85,6 @@ with st.sidebar:
     for key in list(st.session_state.keys()):
       del st.session_state[key]
     st.rerun()
-
-col1, col2 = st.columns(2)
-
-with col1:
-  uploaded_main = st.file_uploader(
-      "📁 ارفع الملف الرئيسي (Master File)",
-      type=["xlsx", "xls"],
-      key="main_file",
-  )
-  if uploaded_main is not None:
-    with open(main_file_path, "wb") as f:
-      f.write(uploaded_main.getbuffer())
-
-with col2:
-  uploaded_new = st.file_uploader(
-      "📁 ارفع الملف المراد مقارنته (New File)",
-      type=["xlsx", "xls"],
-      key="new_file",
-  )
-  if uploaded_new is not None:
-    with open(new_file_path, "wb") as f:
-      f.write(uploaded_new.getbuffer())
 
 active_main = (
     main_file_path
@@ -325,7 +322,6 @@ if (
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
 
-st.markdown("---")
 st.markdown("### 📌 اضغط على أي بطاقة أدناه لفلترة الجدول فوراً:")
 
 st.markdown(
