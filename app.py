@@ -286,15 +286,22 @@ if (
             diff_labels.append("عنوان")
 
           record = {"الكود": idx}
+          # حفظ القيم الأصلية مع القيم المنظفة للمقارنة الدقيقة في الجدول
           for pc in phone_cols:
             record[f"{pc} (الرئيسي)"] = row.get(f"{pc}_m", "")
             record[f"{pc} (المقارنة)"] = row.get(f"{pc}_n", "")
+            record[f"cl_{pc}_m"] = row.get(f"cl_{pc}_m", "")
+            record[f"cl_{pc}_n"] = row.get(f"cl_{pc}_n", "")
           for cic in city_cols:
             record[f"{cic} (الرئيسي)"] = row.get(f"{cic}_m", "")
             record[f"{cic} (المقارنة)"] = row.get(f"{cic}_n", "")
+            record[f"cl_{cic}_m"] = row.get(f"cl_{cic}_m", "")
+            record[f"cl_{cic}_n"] = row.get(f"cl_{cic}_n", "")
           for ac in address_cols:
             record[f"{ac} (الرئيسي)"] = row.get(f"{ac}_m", "")
             record[f"{ac} (المقارنة)"] = row.get(f"{ac}_n", "")
+            record[f"cl_{ac}_m"] = row.get(f"cl_{ac}_m", "")
+            record[f"cl_{ac}_n"] = row.get(f"cl_{ac}_n", "")
 
           record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
           diff_records.append(record)
@@ -467,9 +474,15 @@ if not diff_df.empty:
     ]
 
   if not df_display.empty:
+    # استبعاد أعمدة الفحص الداخلية (cl_*) من العرض المباشر في الجدول
+    cols_to_show = [
+        c for c in df_display.columns if not c.startswith("cl_")
+    ]
+    df_to_export = df_display[cols_to_show]
+
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-      df_display.to_excel(writer, index=False, sheet_name="الاختلافات")
+      df_to_export.to_excel(writer, index=False, sheet_name="الاختلافات")
     excel_data = output.getvalue()
 
     st.download_button(
@@ -488,13 +501,13 @@ if not diff_df.empty:
 
       cells_html = f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">{i}</td>'
 
-      for col_name, val in row.items():
+      for col_name in cols_to_show:
+        val = row[col_name]
         cell_style = (
             "padding: 10px; text-align: center; border-bottom: 1px solid"
             " #e5e7eb; font-size: 14px;"
         )
 
-        # تخصيص تلوين دقيق لكل نوع اختلاف بشكل مستقل ومحدد
         if col_name == "الحالة":
           cell_style += " background-color: #fee2e2 !important; color: #b91c1c; font-weight: bold;"
         elif col_name == "الكود":
@@ -503,21 +516,39 @@ if not diff_df.empty:
               or "الكود غير موجود بقاعدة البيانات السابقة" in status_text
           ):
             cell_style += " background-color: #dbeafe !important; color: #1d4ed8; font-weight: bold;"
-        elif any(w in col_name for w in ["هاتف", "رقم", "phone"]):
-          if "هاتف" in status_text or "موجود في الرئيسي فقط" in status_text or "الكود غير موجود بقاعدة البيانات السابقة" in status_text:
-            cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
-        elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
-          if "مدينة" in status_text or "موجود في الرئيسي فقط" in status_text or "الكود غير موجود بقاعدة البيانات السابقة" in status_text:
-            cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
-        elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
-          if "عنوان" in status_text or "موجود في الرئيسي فقط" in status_text or "الكود غير موجود بقاعدة البيانات السابقة" in status_text:
-            cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
+        else:
+          # التحقق بدقة من القيمة بين (الرئيسي) و (المقارنة) لتلوين الخلية المتغيرة فقط
+          if "(الرئيسي)" in col_name:
+            base_name = col_name.replace(" (الرئيسي)", "").strip()
+            val_m = row.get(f"cl_{base_name}_m", "")
+            val_n = row.get(f"cl_{base_name}_n", "")
+            # تلوين الرئيسي فقط إذا كانت قيمته تختلف عن المقارنة
+            if val_m != val_n:
+              if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
+                cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
+              elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
+                cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
+              elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
+                cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
+
+          elif "(المقارنة)" in col_name:
+            base_name = col_name.replace(" (المقارنة)", "").strip()
+            val_m = row.get(f"cl_{base_name}_m", "")
+            val_n = row.get(f"cl_{base_name}_n", "")
+            # تلوين المقارنة فقط إذا كانت قيمتها تختلف عن الرئيسي
+            if val_m != val_n:
+              if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
+                cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
+              elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
+                cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
+              elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
+                cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
 
         cells_html += f'<td style="{cell_style}">{val}</td>'
 
       rows_html += f"<tr>{cells_html}</tr>"
 
-    columns_list = ["التسلسل"] + list(df_display.columns)
+    columns_list = ["التسلسل"] + cols_to_show
     headers_html = "".join(
         f'<th style="background-color: #4f46e5; color: white; padding: 12px; text-align: center; font-size: 14px;">{col}</th>'
         for col in columns_list
