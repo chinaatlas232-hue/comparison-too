@@ -40,13 +40,13 @@ st.markdown(
     }
     
     /* ألوان البطاقات */
-    .card-city { background-color: rgba(34, 197, 94, 0.2); border: 1px solid rgba(34, 197, 94, 0.4); color: #15803d; }
-    .card-addr { background-color: rgba(234, 179, 8, 0.2); border: 1px solid rgba(234, 179, 8, 0.4); color: #a16207; }
-    .card-phone { background-color: rgba(249, 115, 22, 0.2); border: 1px solid rgba(249, 115, 22, 0.4); color: #c2410c; }
-    .card-code { background-color: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #1d4ed8; }
-    .card-diff { background-color: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #b91c1c; }
-    .card-new { background-color: rgba(168, 85, 247, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); color: #7e22ce; }
-    .card-main { background-color: rgba(107, 114, 128, 0.2); border: 1px solid rgba(107, 114, 128, 0.4); color: #374151; }
+    .card-city { background-color: rgba(34, 197, 94, 0.25); border: 1px solid rgba(34, 197, 94, 0.4); color: #15803d; }
+    .card-addr { background-color: rgba(234, 179, 8, 0.25); border: 1px solid rgba(234, 179, 8, 0.4); color: #a16207; }
+    .card-phone { background-color: rgba(249, 115, 22, 0.25); border: 1px solid rgba(249, 115, 22, 0.4); color: #c2410c; }
+    .card-code { background-color: rgba(59, 130, 246, 0.25); border: 1px solid rgba(59, 130, 246, 0.4); color: #1d4ed8; }
+    .card-diff { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #b91c1c; }
+    .card-new { background-color: rgba(168, 85, 247, 0.25); border: 1px solid rgba(168, 85, 247, 0.4); color: #7e22ce; }
+    .card-main { background-color: rgba(107, 114, 128, 0.25); border: 1px solid rgba(107, 114, 128, 0.4); color: #374151; }
 
     .card-title {
         font-size: 15px;
@@ -133,7 +133,6 @@ active_new = (
 if "active_filter" not in st.session_state:
   st.session_state["active_filter"] = "الكل"
 
-# التعامل مع الضغط وتغيير الفلتر
 if "filter" in st.query_params:
   selected_f = st.query_params["filter"]
   if st.session_state["active_filter"] != selected_f:
@@ -175,39 +174,6 @@ if (
     if not code_col:
       code_col = common_cols[0]
 
-    phone_col = next(
-        (
-            c
-            for c in common_cols
-            if "هاتف" in str(c)
-            or "رقم" in str(c)
-            or "phone" in str(c).lower()
-        ),
-        None,
-    )
-
-    city_col = next(
-        (
-            c
-            for c in common_cols
-            if "مدين" in str(c)
-            or "city" in str(c).lower()
-            or "محافظ" in str(c)
-        ),
-        None,
-    )
-
-    address_col = next(
-        (
-            c
-            for c in common_cols
-            if "عنوان" in str(c)
-            or "address" in str(c).lower()
-            or "سكن" in str(c)
-        ),
-        None,
-    )
-
     def clean_series(series):
       if series is None:
         return pd.Series([""] * len(df_main))
@@ -223,45 +189,15 @@ if (
     df_m = df_main.copy()
     df_n = df_new.copy()
 
-    df_m["clean_id"] = clean_series(df_m[code_col] if code_col else None)
-    df_n["clean_id"] = clean_series(df_n[code_col] if code_col else None)
-
-    df_m["clean_phone"] = clean_series(
-        df_m[phone_col] if phone_col and phone_col in df_m.columns else None
-    )
-    df_n["clean_phone"] = clean_series(
-        df_n[phone_col] if phone_col and phone_col in df_n.columns else None
-    )
-
-    df_m["clean_city"] = clean_series(
-        df_m[city_col] if city_col and city_col in df_m.columns else None
-    )
-    df_n["clean_city"] = clean_series(
-        df_n[city_col] if city_col and city_col in df_n.columns else None
-    )
-
-    df_m["clean_addr"] = clean_series(
-        df_m[address_col]
-        if address_col and address_col in df_m.columns
-        else None
-    )
-    df_n["clean_addr"] = clean_series(
-        df_n[address_col]
-        if address_col and address_col in df_n.columns
-        else None
-    )
+    df_m["clean_id"] = clean_series(df_m[code_col])
+    df_n["clean_id"] = clean_series(df_n[code_col])
 
     c_main = len(df_m["clean_id"].unique())
     c_new = len(df_n["clean_id"].unique())
 
-    dict_main_phone = dict(zip(df_m["clean_id"], df_m["clean_phone"]))
-    dict_new_phone = dict(zip(df_n["clean_id"], df_n["clean_phone"]))
-
-    dict_main_city = dict(zip(df_m["clean_id"], df_m["clean_city"]))
-    dict_new_city = dict(zip(df_n["clean_id"], df_n["clean_city"]))
-
-    dict_main_addr = dict(zip(df_m["clean_id"], df_m["clean_addr"]))
-    dict_new_addr = dict(zip(df_n["clean_id"], df_n["clean_addr"]))
+    # تحويل الملفات إلى قواميس (Dictionaries) مفهرسة بالكود لضمان مقارنة فائقة السرعة والدقة
+    dict_main = df_m.set_index("clean_id").to_dict(orient="index")
+    dict_new = df_n.set_index("clean_id").to_dict(orient="index")
 
     diff_records = []
     code_diff_count = 0
@@ -269,80 +205,125 @@ if (
     city_diff_count = 0
     address_diff_count = 0
 
-    all_ids = set(dict_main_phone.keys()).union(set(dict_new_phone.keys()))
+    all_ids = set(dict_main.keys()).union(set(dict_new.keys()))
 
-    p_col_name = phone_col if phone_col else "الهاتف"
-    ci_col_name = city_col if city_col else "المدينة"
-    a_col_name = address_col if address_col else "العنوان"
+    # تحديد الأعمدة بمرونة عالية
+    phone_cols = [
+        c
+        for c in common_cols
+        if "هاتف" in str(c) or "رقم" in str(c) or "phone" in str(c).lower()
+    ]
+    city_cols = [
+        c
+        for c in common_cols
+        if "مدين" in str(c) or "city" in str(c).lower() or "محافظ" in str(c)
+    ]
+    address_cols = [
+        c
+        for c in common_cols
+        if "عنوان" in str(c)
+        or "address" in str(c).lower()
+        or "سكن" in str(c)
+        or "استلام" in str(c)
+    ]
 
     for idx in all_ids:
-      in_main = idx in dict_main_phone
-      in_new = idx in dict_new_phone
+      in_main = idx in dict_main
+      in_new = idx in dict_new
 
       if in_main and in_new:
-        p_main = dict_main_phone.get(idx, "")
-        p_new = dict_new_phone.get(idx, "")
-        ci_main = dict_main_city.get(idx, "")
-        ci_new = dict_new_city.get(idx, "")
-        a_main = dict_main_addr.get(idx, "")
-        a_new = dict_new_addr.get(idx, "")
+        row_m = dict_main[idx]
+        row_n = dict_new[idx]
 
-        has_phone_diff = p_main != p_new
-        has_city_diff = ci_main != ci_new
-        has_addr_diff = a_main != a_new
+        has_p_diff = False
+        has_ci_diff = False
+        has_a_diff = False
 
-        if has_phone_diff or has_city_diff or has_addr_diff:
-          if has_phone_diff:
+        # فحص جميع أعضاء الهواتف (الهاتف الأول والثاني وغيرها)
+        for pc in phone_cols:
+          val_m = clean_series(pd.Series([row_m.get(pc, "")]))[0]
+          val_n = clean_series(pd.Series([row_n.get(pc, "")]))[0]
+          if val_m != val_n:
+            has_p_diff = True
+
+        # فحص المحافظات / المدن
+        for cic in city_cols:
+          val_m = clean_series(pd.Series([row_m.get(cic, "")]))[0]
+          val_n = clean_series(pd.Series([row_n.get(cic, "")]))[0]
+          if val_m != val_n:
+            has_ci_diff = True
+
+        # فحص العناوين / الاستلام
+        for ac in address_cols:
+          val_m = clean_series(pd.Series([row_m.get(ac, "")]))[0]
+          val_n = clean_series(pd.Series([row_n.get(ac, "")]))[0]
+          if val_m != val_n:
+            has_a_diff = True
+
+        if has_p_diff or has_ci_diff or has_a_diff:
+          if has_p_diff:
             phone_diff_count += 1
-          if has_city_diff:
+          if has_ci_diff:
             city_diff_count += 1
-          if has_addr_diff:
+          if has_a_diff:
             address_diff_count += 1
 
           diff_labels = []
-          if has_phone_diff:
+          if has_p_diff:
             diff_labels.append("هاتف")
-          if has_city_diff:
+          if has_ci_diff:
             diff_labels.append("مدينة")
-          if has_addr_diff:
+          if has_a_diff:
             diff_labels.append("عنوان")
 
           status_label = "اختلاف " + " و ".join(diff_labels)
 
-          diff_records.append({
-              "الكود": idx,
-              f"{p_col_name} (الرئيسي)": p_main,
-              f"{p_col_name} (المقارنة)": p_new,
-              f"{ci_col_name} (الرئيسي)": ci_main,
-              f"{ci_col_name} (المقارنة)": ci_new,
-              f"{a_col_name} (الرئيسي)": a_main,
-              f"{a_col_name} (المقارنة)": a_new,
-              "الحالة": status_label,
-          })
+          # دمج عرض البيانات للمقارنة
+          record = {"الكود": idx}
+          for pc in phone_cols:
+            record[f"{pc} (الرئيسي)"] = row_m.get(pc, "")
+            record[f"{pc} (المقارنة)"] = row_n.get(pc, "")
+          for cic in city_cols:
+            record[f"{cic} (الرئيسي)"] = row_m.get(cic, "")
+            record[f"{cic} (المقارنة)"] = row_n.get(cic, "")
+          for ac in address_cols:
+            record[f"{ac} (الرئيسي)"] = row_m.get(ac, "")
+            record[f"{ac} (المقارنة)"] = row_n.get(ac, "")
+
+          record["الحالة"] = status_label
+          diff_records.append(record)
+
       elif in_main and not in_new:
         code_diff_count += 1
-        diff_records.append({
-            "الكود": idx,
-            f"{p_col_name} (الرئيسي)": dict_main_phone.get(idx, ""),
-            f"{p_col_name} (المقارنة)": "غير موجود",
-            f"{ci_col_name} (الرئيسي)": dict_main_city.get(idx, ""),
-            f"{ci_col_name} (المقارنة)": "غير موجود",
-            f"{a_col_name} (الرئيسي)": dict_main_addr.get(idx, ""),
-            f"{a_col_name} (المقارنة)": "غير موجود",
-            "الحالة": "موجود في الرئيسي فقط",
-        })
+        row_m = dict_main[idx]
+        record = {"الكود": idx}
+        for pc in phone_cols:
+          record[f"{pc} (الرئيسي)"] = row_m.get(pc, "")
+          record[f"{pc} (المقارنة)"] = "غير موجود"
+        for cic in city_cols:
+          record[f"{cic} (الرئيسي)"] = row_m.get(cic, "")
+          record[f"{cic} (المقارنة)"] = "غير موجود"
+        for ac in address_cols:
+          record[f"{ac} (الرئيسي)"] = row_m.get(ac, "")
+          record[f"{ac} (المقارنة)"] = "غير موجود"
+        record["الحالة"] = "موجود في الرئيسي فقط"
+        diff_records.append(record)
+
       elif not in_main and in_new:
         code_diff_count += 1
-        diff_records.append({
-            "الكود": idx,
-            f"{p_col_name} (الرئيسي)": "غير موجود",
-            f"{p_col_name} (المقارنة)": dict_new_phone.get(idx, ""),
-            f"{ci_col_name} (الرئيسي)": "غير موجود",
-            f"{ci_col_name} (المقارنة)": dict_new_city.get(idx, ""),
-            f"{a_col_name} (الرئيسي)": "غير موجود",
-            f"{a_col_name} (المقارنة)": dict_new_addr.get(idx, ""),
-            "الحالة": "الكود غير موجود بقاعدة البيانات السابقة",
-        })
+        row_n = dict_new[idx]
+        record = {"الكود": idx}
+        for pc in phone_cols:
+          record[f"{pc} (الرئيسي)"] = "غير موجود"
+          record[f"{pc} (المقارنة)"] = row_n.get(pc, "")
+        for cic in city_cols:
+          record[f"{cic} (الرئيسي)"] = "غير موجود"
+          record[f"{cic} (المقارنة)"] = row_n.get(cic, "")
+        for ac in address_cols:
+          record[f"{ac} (الرئيسي)"] = "غير موجود"
+          record[f"{ac} (المقارنة)"] = row_n.get(ac, "")
+        record["الحالة"] = "الكود غير موجود بقاعدة البيانات السابقة"
+        diff_records.append(record)
 
     c_diff = (
         code_diff_count
@@ -373,63 +354,63 @@ cols = st.columns(7)
 
 with cols[0]:
   st.markdown(
-      f"""<a href="?filter=فروقات المدينة" target="_self" class="custom-card" style="background-color: rgba(34, 197, 94, 0.25); border: 1px solid rgba(34, 197, 94, 0.4); color: #15803d;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">🏙️ المدينة</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_city_diff}</div>
+      f"""<a href="?filter=فروقات المدينة" target="_self" class="custom-card card-city">
+        <div class="card-title">🏙️ المدينة</div>
+        <div class="card-value">{c_city_diff}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[1]:
   st.markdown(
-      f"""<a href="?filter=فروقات العنوان" target="_self" class="custom-card" style="background-color: rgba(234, 179, 8, 0.25); border: 1px solid rgba(234, 179, 8, 0.4); color: #a16207;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">🏠 العنوان</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_address_diff}</div>
+      f"""<a href="?filter=فروقات العنوان" target="_self" class="custom-card card-addr">
+        <div class="card-title">🏠 العنوان</div>
+        <div class="card-value">{c_address_diff}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[2]:
   st.markdown(
-      f"""<a href="?filter=فروقات الهاتف" target="_self" class="custom-card" style="background-color: rgba(249, 115, 22, 0.25); border: 1px solid rgba(249, 115, 22, 0.4); color: #c2410c;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">📞 الهاتف</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_phone_diff}</div>
+      f"""<a href="?filter=فروقات الهاتف" target="_self" class="custom-card card-phone">
+        <div class="card-title">📞 الهاتف</div>
+        <div class="card-value">{c_phone_diff}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[3]:
   st.markdown(
-      f"""<a href="?filter=فروقات الكود" target="_self" class="custom-card" style="background-color: rgba(59, 130, 246, 0.25); border: 1px solid rgba(59, 130, 246, 0.4); color: #1d4ed8;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">🔑 الكود</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_code_diff}</div>
+      f"""<a href="?filter=فروقات الكود" target="_self" class="custom-card card-code">
+        <div class="card-title">🔑 الكود</div>
+        <div class="card-value">{c_code_diff}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[4]:
   st.markdown(
-      f"""<a href="?filter=الكل" target="_self" class="custom-card" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #b91c1c;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">⚠️ الإجمالي</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_diff}</div>
+      f"""<a href="?filter=الكل" target="_self" class="custom-card card-diff">
+        <div class="card-title">⚠️ الإجمالي</div>
+        <div class="card-value">{c_diff}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[5]:
   st.markdown(
-      f"""<a href="?filter=المقارنة" target="_self" class="custom-card" style="background-color: rgba(168, 85, 247, 0.25); border: 1px solid rgba(168, 85, 247, 0.4); color: #7e22ce;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">📁 المقارنة</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_new}</div>
+      f"""<a href="?filter=المقارنة" target="_self" class="custom-card card-new">
+        <div class="card-title">📁 المقارنة</div>
+        <div class="card-value">{c_new}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[6]:
   st.markdown(
-      f"""<a href="?filter=الرئيسي" target="_self" class="custom-card" style="background-color: rgba(107, 114, 128, 0.25); border: 1px solid rgba(107, 114, 128, 0.4); color: #374151;">
-        <div style="font-size: 15px; font-weight: bold; margin-bottom: 8px;">📦 الرئيسي</div>
-        <div style="font-size: 18px; font-weight: bold;">{c_main}</div>
+      f"""<a href="?filter=الرئيسي" target="_self" class="custom-card card-main">
+        <div class="card-title">📦 الرئيسي</div>
+        <div class="card-value">{c_main}</div>
     </a>""",
       unsafe_allow_html=True,
   )
