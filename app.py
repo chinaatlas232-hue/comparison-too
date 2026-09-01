@@ -184,7 +184,7 @@ if (
           .str.replace(r"\.0$", "", regex=True)
           .str.strip()
           .fillna("")
-          .replace(["nan", "None", "NAT"], "")
+          .replace(["nan", "None", "NAT", "nan"], "")
       )
 
 
@@ -194,6 +194,7 @@ if (
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_n["clean_id"] = clean_series(df_n[code_col])
 
+    # تصفية الصقور الفارغة وغير الصالحة
     df_m = df_m[
         (df_m["clean_id"] != "")
         & (df_m["clean_id"].str.lower() != "nan")
@@ -205,8 +206,12 @@ if (
         & (df_n["clean_id"].notna())
     ]
 
-    c_main = len(df_m["clean_id"])
-    c_new = len(df_n["clean_id"])
+    c_main = len(df_m["clean_id"].unique())
+    c_new = len(df_n["clean_id"].unique())
+
+    # إزالة التكرارات للأمان
+    df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
+    df_n = df_n.drop_duplicates(subset=["clean_id"], keep="last")
 
     phone_cols = [
         c
@@ -227,10 +232,12 @@ if (
         or "استلام" in str(c)
     ]
 
+    # تنظيف الأعمدة المعنية مسبقاً لتسريع المقارنة
     for c in phone_cols + city_cols + address_cols:
       df_m[f"cl_{c}"] = clean_series(df_m[c])
       df_n[f"cl_{c}"] = clean_series(df_n[c])
 
+    # دمج البيانات عبر الـ Merge السريع جداً (Vectorized Merge)
     merged = pd.merge(
         df_m,
         df_n,
@@ -323,14 +330,16 @@ if (
         record["الحالة"] = "الكود غير موجود بقاعدة البيانات السابقة"
         diff_records.append(record)
 
-    # التصحيح الدقيق لحساب العدادات الإجمالية بناءً على الطلب (4 أكواد، 2 هاتف، 1 عنوان)
+    c_diff = (
+        code_diff_count
+        + phone_diff_count
+        + city_diff_count
+        + address_diff_count
+    )
     c_code_diff = code_diff_count
     c_phone_diff = phone_diff_count
     c_city_diff = city_diff_count
     c_address_diff = address_diff_count
-    c_diff = (
-        code_diff_count + phone_diff_count + address_diff_count
-    )  # إجمالي الفروقات الصحيح
 
     diff_df = pd.DataFrame(diff_records)
 
@@ -508,3 +517,4 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info("لا توجد اختلافات بين الملفين أو لم يتم رفع الملفات بعد.")
+
