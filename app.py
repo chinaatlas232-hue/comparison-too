@@ -7,6 +7,7 @@ st.set_page_config(
     page_title="قاعدة بيانات عملاء أطلس", page_icon="📊", layout="wide"
 )
 
+# معالجة الفلتر من رابط الصفحة
 query_params = st.query_params
 if "filter" in query_params:
   st.session_state["active_filter"] = query_params["filter"]
@@ -158,10 +159,12 @@ if df_main is not None and active_sub is not None:
     df_main.columns = df_main.columns.astype(str).str.strip()
 
 
+    # خوارزمية ذكية لاكتشاف أعمدة المعرف والكود
     def get_smart_code_col(df):
       for col in df.columns:
         if any(
-            kw in str(col).lower() for kw in ["كود", "code", "id", "الرقم"]
+            kw in str(col).lower()
+            for kw in ["كود", "code", "id", "الرقم", "رقم العميل"]
         ):
           return col
       return df.columns[0]
@@ -210,67 +213,67 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-    # --- تحسين خوارزمية مطابقة الأعمدة بذكاء بناءً على المعنى ---
+    # --- خوارزمية تصنيف وربط الأعمدة المتقدمة بناءً على نوع الحقل والدلالة ---
     pairs = []
     used_s = set()
 
-
-    def normalize_str(text):
-      return (
-          str(text)
-          .strip()
-          .replace("أ", "ا")
-          .replace("إ", "ا")
-          .replace("آ", "ا")
-          .replace("ة", "ه")
-          .lower()
-      )
-
-
-    # استخراج كافة أعمدة الملف الفرعي المتاحة (عدا المعرف)
     available_s_cols = [
         c for c in df_s.columns if c not in ["unified_id", "clean_id"]
     ]
 
+
+    def classify_column(col_name):
+      c_low = str(col_name).strip().lower()
+      if any(w in c_low for w in ["هاتف", "رقم", "phone", "jawwal", "موبايل"]):
+        return "phone"
+      elif any(w in c_low for w in ["مدين", "city", "محافظ", "منطقة"]):
+        return "city"
+      elif any(
+          w in c_low
+          for w in [
+              "عنوان",
+              "سكن",
+              "شارع",
+              "استلام",
+              "البضاعة",
+              "address",
+              "location",
+              "ملاحظات",
+          ]
+      ):
+        return "address"
+      return "other"
+
+
+    # ربط الأعمدة المتناظرة بدقة بناءً على التصنيف والدلالة
     for cm in df_m.columns:
       if cm in ["unified_id", "clean_id"]:
         continue
 
-      cm_norm = normalize_str(cm)
+      type_m = classify_column(cm)
       best_match = None
 
-      # 1. مطابقة دقيقة أو جزئية قوية بالاسم
+      # 1. البحث عن عمود في الملف الفرعي يتطابق مع نفس التصنيف النوعي
       for cs in available_s_cols:
         if cs in used_s:
           continue
-        cs_norm = normalize_str(cs)
-        if cm_norm == cs_norm or cm_norm in cs_norm or cs_norm in cm_norm:
+        if classify_column(cs) == type_m and type_m != "other":
           best_match = cs
           break
 
-      # 2. مطابقة ذكية مخصصة للحقول الحساسة (العنوان، الاستلام، البضاعة، السكن)
+      # 2. إذا لم يوجد تطابق نوعي، نبحث عن تطابق حر في اسم العمود
       if not best_match:
-        address_keywords = [
-            "عنوان",
-            "سكن",
-            "شارع",
-            "استلام",
-            "البضاعة",
-            "address",
-            "location",
-        ]
-        is_cm_address = any(kw in cm_norm for kw in address_keywords)
+        for cs in available_s_cols:
+          if cs in used_s:
+            continue
+          if (
+              str(cm).strip().lower() in str(cs).strip().lower()
+              or str(cs).strip().lower() in str(cm).strip().lower()
+          ):
+            best_match = cs
+            break
 
-        if is_cm_address:
-          for cs in available_s_cols:
-            if cs in used_s:
-              continue
-            cs_norm = normalize_str(cs)
-            if any(kw in cs_norm for kw in address_keywords):
-              best_match = cs
-              break
-
-      # 3. إذا لم يوجد تطابق بالاسم، نبحث عن أول عمود متاح لم يُستخدم بعد
+      # 3. إذا فشل الكل، خذ أول عمود متاح غير مستخدم
       if not best_match:
         for cs in available_s_cols:
           if cs not in used_s:
@@ -282,7 +285,7 @@ if df_main is not None and active_sub is not None:
         pairs.append((cm, best_match))
 
 
-    def clean_val(series, is_phone=False):
+    def clean_val(series, field_type="other"):
       if series is None:
         return pd.Series([""] * len(series))
       s = (
@@ -292,7 +295,7 @@ if df_main is not None and active_sub is not None:
           .fillna("")
       )
       s = s.replace(["nan", "None", "NAT", "nat", ""], "")
-      if is_phone:
+      if field_type == "phone":
         s = s.str.replace(r"\D", "", regex=True)
         s = s.str.replace(r"^00", "", regex=True)
       else:
@@ -309,11 +312,9 @@ if df_main is not None and active_sub is not None:
 
 
     for cm, cs in pairs:
-      is_ph = any(
-          kw in str(cm).lower() for kw in ["هاتف", "رقم", "phone", "jawwal"]
-      )
-      df_m[f"cl_{cm}"] = clean_val(df_m[cm], is_phone=is_ph)
-      df_s[f"cl_{cs}"] = clean_val(df_s[cs], is_phone=is_ph)
+      ftype = classify_column(cm)
+      df_m[f"cl_{cm}"] = clean_val(df_m[cm], field_type=ftype)
+      df_s[f"cl_{cs}"] = clean_val(df_s[cs], field_type=ftype)
 
     merged = pd.merge(
         df_m,
@@ -343,19 +344,17 @@ if df_main is not None and active_sub is not None:
           val_s = str(row.get(f"cl_{cs}_y", "")).strip()
 
           if val_m != val_s:
-            col_lower = str(cm).lower()
-            if any(
-                w in col_lower for w in ["هاتف", "رقم", "phone", "jawwal"]
-            ):
+            ftype = classify_column(cm)
+            if ftype == "phone":
               has_p_diff = True
               if "هاتف" not in diff_labels:
                 diff_labels.append("هاتف")
-            elif any(w in col_lower for w in ["مدين", "city", "محافظ"]):
+            elif ftype == "city":
               has_ci_diff = True
               if "مدينة" not in diff_labels:
                 diff_labels.append("مدينة")
             else:
-              # أي اختلاف في العنوان، استلام البضاعة، أو الحقول النصية الأخرى يوجه لبطاقة العنوان
+              # يندج تحت العنوان أي اختلاف في العنوان أو استلام البضاعة أو الحقول الأخرى
               has_a_diff = True
               if "عنوان" not in diff_labels:
                 diff_labels.append("عنوان")
@@ -580,7 +579,16 @@ if not diff_df.empty:
           elif any(w in col_low for w in ["مدين", "city", "محافظ"]):
             cell_style += " background-color: #dcfce7 !important; color: #15803d;"
           elif any(
-              w in col_low for w in ["عنوان", "address", "سكن", "استلام", "شارع"]
+              w in col_low
+              for w in [
+                  "عنوان",
+                  "address",
+                  "سكن",
+                  "استلام",
+                  "شارع",
+                  "البضاعة",
+                  "ملاحظات",
+              ]
           ):
             cell_style += " background-color: #fef9c3 !important; color: #a16207;"
 
