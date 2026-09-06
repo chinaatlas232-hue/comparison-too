@@ -158,25 +158,31 @@ if df_main is not None and active_sub is not None:
     df_main.columns = df_main.columns.astype(str).str.strip()
 
 
-    def get_smart_code_col(df, sample_code="E830"):
+    # دالة ذكية لإيجاد عمود الكود بمعزل عن التسمية
+    def get_smart_code_col(df):
       for col in df.columns:
-        if (
-            df[col]
-            .astype(str)
-            .str.upper()
-            .str.contains(sample_code, na=False)
-            .any()
-        ):
+        # البحث عن عمود يحتوي على أكواد تبدأ بحرف ورقم مثل E830 أو K564
+        sample_vals = df[col].astype(str).str.upper()
+        if sample_vals.str.contains(r"^[A-Z]\d+", regex=True).any():
           return col
-      for kw in ["كود", "code", "id", "رقم العميل", "الرقم", "معرف"]:
+      for kw in [
+          "كود",
+          "code",
+          "id",
+          "رقم العميل",
+          "الرقم",
+          "معرف",
+          "رمز",
+          "customer",
+      ]:
         for col in df.columns:
           if kw in str(col).lower():
             return col
       return df.columns[0]
 
 
-    code_col_m = get_smart_code_col(df_main, "E830")
-    code_col_s = get_smart_code_col(df_sub, "E830")
+    code_col_m = get_smart_code_col(df_main)
+    code_col_s = get_smart_code_col(df_sub)
 
     df_m = df_main.copy()
     df_s = df_sub.copy()
@@ -185,7 +191,96 @@ if df_main is not None and active_sub is not None:
     df_s.rename(columns={code_col_s: "unified_id"}, inplace=True)
 
 
-    def clean_series(series, is_phone=False):
+    def clean_id_series(series):
+      if series is None:
+        return pd.Series([""] * len(series))
+      s = (
+          series.astype(str)
+          .str.replace(r"\.0$", "", regex=True)
+          .str.strip()
+          .str.upper()
+          .fillna("")
+      )
+      return s.replace(["NAN", "NONE", "NAT", ""], "")
+
+
+    df_m["clean_id"] = clean_id_series(df_m["unified_id"])
+    df_s["clean_id"] = clean_id_series(df_s["unified_id"])
+
+    df_m = df_m[
+        (df_m["clean_id"] != "")
+        & (df_m["clean_id"] != "NAN")
+        & (df_m["clean_id"].notna())
+    ]
+    df_s = df_s[
+        (df_s["clean_id"] != "")
+        & (df_s["clean_id"] != "NAN")
+        & (df_s["clean_id"].notna())
+    ]
+
+    c_main = len(df_m["clean_id"].unique())
+    c_sub_file = len(df_s["clean_id"].unique())
+
+    df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
+    df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
+
+
+    def find_matching_cols(cols_m, cols_s, keywords):
+      matched_pairs = []
+      used_s = set()
+      for cm in cols_m:
+        if cm in ["unified_id", "clean_id"]:
+          continue
+        cm_low = str(cm).lower()
+        if any(kw in cm_low for kw in keywords):
+          best_match = None
+          for cs in cols_s:
+            if cs in ["unified_id", "clean_id"] or cs in used_s:
+              continue
+            cs_low = str(cs).lower()
+            if any(kw in cs_low for kw in keywords):
+              best_match = cs
+              break
+          if not best_match:
+            if cm in cols_s and cm not in used_s:
+              best_match = cm
+          if best_match:
+            used_s.add(best_match)
+            matched_pairs.append((cm, best_match))
+
+      # إذا لم يتم العثور على أعمدة عبر الكلمات المفتاحية، خذ الأعمدة المشتركة بالاسم تماماً
+      if not matched_pairs:
+        common = set(cols_m).intersection(set(cols_s))
+        for c in common:
+          if c not in ["unified_id", "clean_id"]:
+            matched_pairs.append((c, c))
+
+      return matched_pairs
+
+
+    phone_keywords = ["هاتف", "رقم", "phone", "jawwal", "موبايل", "mobile"]
+    city_keywords = ["مدين", "city", "محافظ", "منطق", "area", "province"]
+    address_keywords = [
+        "عنوان",
+        -address,
+        "address",
+        "سكن",
+        "استلام",
+        "شارع",
+        "location",
+    ]
+
+    # تصحيح الكلمات المفتاحية للعنوان
+    address_keywords = ["عنوان", "address", "سكن", "استلام", "شارع", "location"]
+
+    phone_pairs = find_matching_cols(df_m.columns, df_s.columns, phone_keywords)
+    city_pairs = find_matching_cols(df_m.columns, df_s.columns, city_keywords)
+    address_pairs = find_matching_cols(
+        df_m.columns, df_s.columns, address_keywords
+    )
+
+
+    def clean_val(series, is_phone=False):
       if series is None:
         return pd.Series([""] * len(series))
       s = (
@@ -207,85 +302,13 @@ if df_main is not None and active_sub is not None:
       return s
 
 
-    df_m["clean_id"] = (
-        df_m["unified_id"]
-        .astype(str)
-        .str.replace(r"\.0$", "", regex=True)
-        .str.strip()
-        .str.upper()
-    )
-    df_s["clean_id"] = (
-        df_s["unified_id"]
-        .astype(str)
-        .str.replace(r"\.0$", "", regex=True)
-        .str.strip()
-        .str.upper()
-    )
-
-    df_m = df_m[
-        (df_m["clean_id"] != "")
-        & (df_m["clean_id"] != "NAN")
-        & (df_m["clean_id"].notna())
-    ]
-    df_s = df_s[
-        (df_s["clean_id"] != "")
-        & (df_s["clean_id"] != "NAN")
-        & (df_s["clean_id"].notna())
-    ]
-
-    c_main = len(df_m["clean_id"].unique())
-    c_sub_file = len(df_s["clean_id"].unique())
-
-    df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
-    df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
-
-
-    # دالة مطابقة ذكية للأعمدة بناءً على الكلمات المفتاحية بغض النظر عن اختلاف التسمية الحرفية
-    def find_matching_cols(cols_m, cols_s, keywords):
-      matched_pairs = []
-      used_s = set()
-      for cm in cols_m:
-        if cm in ["unified_id", "clean_id"]:
-          continue
-        cm_low = str(cm).lower()
-        if any(kw in cm_low for kw in keywords):
-          # ابحث عن عمود يقابله في الفرعي
-          best_match = None
-          for cs in cols_s:
-            if cs in ["unified_id", "clean_id"] or cs in used_s:
-              continue
-            cs_low = str(cs).lower()
-            if any(kw in cs_low for kw in keywords):
-              best_match = cs
-              break
-          if not best_match:
-            # إذا لم يوجد عمود بنفس الكلمة المفتاحية بالفرعي، خذ نفس اسم العمود إذا وجد أو أول عمود متاح
-            if cm in cols_s and cm not in used_s:
-              best_match = cm
-          if best_match:
-            used_s.add(best_match)
-            matched_pairs.append((cm, best_match))
-      return matched_pairs
-
-
-    phone_keywords = ["هاتف", "رقم", "phone", "jawwal", "موبايل"]
-    city_keywords = ["مدين", "city", "محافظ", "منطق", "area"]
-    address_keywords = ["عنوان", "address", "سكن", "استلام", "شارع"]
-
-    phone_pairs = find_matching_cols(df_m.columns, df_s.columns, phone_keywords)
-    city_pairs = find_matching_cols(df_m.columns, df_s.columns, city_keywords)
-    address_pairs = find_matching_cols(
-        df_m.columns, df_s.columns, address_keywords
-    )
-
-    # تجهيز الأعمدة النظيفة للمقارنة
     for cm, cs in phone_pairs:
-      df_m[f"cl_{cm}"] = clean_series(df_m[cm], is_phone=True)
-      df_s[f"cl_{cs}"] = clean_series(df_s[cs], is_phone=True)
+      df_m[f"cl_{cm}"] = clean_val(df_m[cm], is_phone=True)
+      df_s[f"cl_{cs}"] = clean_val(df_s[cs], is_phone=True)
 
     for cm, cs in city_pairs + address_pairs:
-      df_m[f"cl_{cm}"] = clean_series(df_m[cm], is_phone=False)
-      df_s[f"cl_{cs}"] = clean_series(df_s[cs], is_phone=False)
+      df_m[f"cl_{cm}"] = clean_val(df_m[cm], is_phone=False)
+      df_s[f"cl_{cs}"] = clean_val(df_s[cs], is_phone=False)
 
     merged = pd.merge(
         df_m,
