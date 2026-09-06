@@ -80,7 +80,8 @@ st.markdown(
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
+# تسمية الملف الرئيسي بالاسم الجديد المطلوب
+main_file_path = os.path.join(UPLOAD_DIR, "coustmer info 2.xlsx")
 
 # الرابط المثبت تلقائياً لملف المقارنة (Google Sheets)
 FIXED_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1UQG8zRhSiCUPogSZHvWPVgJPCe0OH-1k/edit"
@@ -89,7 +90,7 @@ with st.sidebar:
   st.markdown("### 📁 إدارة الملفات والروابط")
 
   uploaded_main = st.file_uploader(
-      "الملف الرئيسي (Master File)", type=["xlsx", "xls"], key="main_file"
+      "الملف الرئيسي (coustmer info 2)", type=["xlsx", "xls"], key="main_file"
   )
   if uploaded_main is not None:
     if os.path.exists(main_file_path):
@@ -187,17 +188,12 @@ if active_main and df_new is not None:
           .fillna("")
       )
 
-      # استبدال القيم الفارغة الشائعة لتصبح نصاً فارغاً موحداً
-      s = s.replace(["nan", "None", "NAT", "nat", "None", ""], "")
+      s = s.replace(["nan", "None", "NAT", "nat", ""], "")
 
       if is_phone:
-        # إزالة كافة المسافات والرموز الزائدة في أرقام الهواتف للمقارنة السليمة
         s = s.str.replace(r"\D", "", regex=True)
-        # توحيد أرقام الهواتف العراقية أو الدولية إذا بدأت بـ 964 أو 00964
-        s = s.str.sub(r"^00", "", regex=True)
-
+        s = s.str.replace(r"^00", "", regex=True)
       else:
-        # توحيد المسافات المتعددة في النصوص (العنوان والمدينة) لتجنب الفروقات الوهمية
         s = s.str.replace(r"\s+", " ", regex=True).str.strip()
 
       return s
@@ -577,6 +573,6 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info(
-      "يرجى رفع الملف الرئيسي (Master File) في الشريط الجانبي لتبدأ عملية"
+      "يرجى رفع الملف الرئيسي (coustmer info 2) في الشريط الجانبي لتبدأ عملية"
       " المقارنة تلقائياً مع رابط Google Sheets."
   )
