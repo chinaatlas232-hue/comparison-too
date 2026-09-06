@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="مقارن ملفات الإكسل الذكي", page_icon="📊", layout="wide"
+    page_title="قاعدة بيانات عملاء أطلس", page_icon="📊", layout="wide"
 )
 
 # معالجة استلام الضغط على البطاقات عبر query_params
@@ -80,7 +80,7 @@ st.markdown(
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# تسمية الملف الرئيسي بالاسم الجديد المطلوب
+# تسمية الملف الرئيسي بالاسم المطلوب
 main_file_path = os.path.join(UPLOAD_DIR, "coustmer info 2.xlsx")
 
 # الرابط المثبت تلقائياً لملف المقارنة (Google Sheets)
@@ -99,7 +99,9 @@ with st.sidebar:
       f.write(uploaded_main.getbuffer())
 
   st.markdown("---")
-  st.info("🔗 تم ربط ملف المقارنة تلقائياً بـ Google Sheets بنجاح.")
+  st.info(
+      "🔗 تم ربط قاعدة بيانات عملاء أطلس تلقائياً بـ Google Sheets بنجاح."
+  )
 
   st.markdown("---")
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -498,7 +500,7 @@ if not diff_df.empty:
     st.download_button(
         label="📥 تحميل جدول النتائج الحالي بصيغة Excel",
         data=excel_data,
-        file_name=f"comparison_results_{current_filter}.xlsx",
+        file_name=f"atlas_comparison_results_{current_filter}.xlsx",
         mime=(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ),
@@ -574,5 +576,5 @@ if not diff_df.empty:
 else:
   st.info(
       "يرجى رفع الملف الرئيسي (coustmer info 2) في الشريط الجانبي لتبدأ عملية"
-      " المقارنة تلقائياً مع رابط Google Sheets."
+      " المقارنة تلقائياً مع قاعدة بيانات عملاء أطلس."
   )
