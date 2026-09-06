@@ -210,28 +210,50 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-    # مطابقة الأعمدة بناءً على الاسم الموحد تماماً بين الملفين
-    common_columns = []
-    for col_m in df_m.columns:
-      if col_m in ["unified_id", "clean_id"]:
+    # مطابقة الأعمدة بمرونة عالية بناءً على محتوى اسم العمود (مثل الاسم، الهاتف، المحافظات، استلام البضاعة)
+    pairs = []
+    used_s = set()
+
+    for cm in df_m.columns:
+      if cm in ["unified_id", "clean_id"]:
         continue
-      for col_s in df_s.columns:
-        if col_s in ["unified_id", "clean_id"]:
+      cm_clean = (
+          str(cm)
+          .strip()
+          .replace("أ", "ا")
+          .replace("إ", "ا")
+          .replace("آ", "ا")
+          .lower()
+      )
+      best_match = None
+
+      for cs in df_s.columns:
+        if cs in ["unified_id", "clean_id"] or cs in used_s:
           continue
-        # مقارنة الأسماء بعد تنظيفها من الفراغات
-        if str(col_m).strip() == str(col_s).strip():
-          common_columns.append((col_m, col_s))
+        cs_clean = (
+            str(cs)
+            .strip()
+            .replace("أ", "ا")
+            .replace("إ", "ا")
+            .replace("آ", "ا")
+            .lower()
+        )
+
+        if cm_clean == cs_clean or cm_clean in cs_clean or cs_clean in cm_clean:
+          best_match = cs
           break
 
-    # إذا وُجدت أعمدة مطابقة بالاسم تماماً، نستخدمها؛ وإلا نربط كل الأعمدة المتشابهة
-    pairs = common_columns if common_columns else []
-    if not pairs:
-      for cm in df_m.columns:
-        if cm not in ["unified_id", "clean_id"]:
-          for cs in df_s.columns:
-            if cs not in ["unified_id", "clean_id"]:
-              pairs.append((cm, cs))
-              break
+      if not best_match:
+        # البحث بالترتيب أو افتراض الأقرب إذا تقاربت الأعمدة
+        for cs in df_s.columns:
+          if cs not in ["unified_id", "clean_id"] and cs not in used_s:
+            best_match = cs
+            break
+
+      if best_match:
+        used_s.add(best_match)
+        pairs.append((cm, best_match))
+
 
     def clean_val(series, is_phone=False):
       if series is None:
@@ -251,6 +273,9 @@ if df_main is not None and active_sub is not None:
             s.str.replace(r"\s+", " ", regex=True)
             .str.strip()
             .str.upper()
+            .str.replace("أ", "ا")
+            .str.replace("إ", "ا")
+            .str.replace("آ", "ا")
         )
       return s
 
