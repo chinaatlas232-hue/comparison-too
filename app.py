@@ -7,7 +7,6 @@ st.set_page_config(
     page_title="قاعدة بيانات عملاء أطلس", page_icon="📊", layout="wide"
 )
 
-# معالجة استلام الضغط على البطاقات عبر query_params
 query_params = st.query_params
 if "filter" in query_params:
   st.session_state["active_filter"] = query_params["filter"]
@@ -22,8 +21,6 @@ st.markdown(
     [data-testid="stSidebar"] {
         background-color: rgba(180, 180, 180, 0.72) !important;
     }
-    
-    /* تصميم البطاقات الملونة البديلة للأزرار مع فرض الألوان بـ important */
     .custom-card {
         border-radius: 10px !important;
         padding: 14px 10px !important;
@@ -38,8 +35,6 @@ st.markdown(
         transform: translateY(-3px) !important;
         box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
     }
-    
-    /* ألوان وخلفيات البطاقات الثابتة */
     .card-city { background-color: #dcfce7 !important; border: 1px solid #22c55e !important; color: #15803d !important; }
     .card-addr { background-color: #fef9c3 !important; border: 1px solid #eab308 !important; color: #a16207 !important; }
     .card-phone { background-color: #ffedd5 !important; border: 1px solid #f97316 !important; color: #c2410c !important; }
@@ -57,8 +52,6 @@ st.markdown(
         font-size: 18px !important;
         font-weight: bold !important;
     }
-
-    /* زر تحميل الإكسل أخضر فاتح */
     div.stDownloadButton > button {
         background-color: rgba(34, 197, 94, 0.2) !important;
         color: #15803d !important;
@@ -80,10 +73,7 @@ st.markdown(
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# تسمية الملف الفرعي المرفوع (coustmer info 2)
 sub_file_path = os.path.join(UPLOAD_DIR, "coustmer info 2.xlsx")
-
-# الرابط المثبت لقاعدة بيانات عملاء أطلس (Google Sheets) لتكون الملف الرئيسي
 FIXED_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1UQG8zRhSiCUPogSZHvWPVgJPCe0OH-1k/edit"
 
 with st.sidebar:
@@ -92,7 +82,6 @@ with st.sidebar:
   uploaded_sub = st.file_uploader(
       "ملف المقارنة الفرعي (coustmer info 2)",
       type=["xlsx", "xls"],
-      key:="sub_file",
   )
   if uploaded_sub is not None:
     if os.path.exists(sub_file_path):
@@ -158,7 +147,6 @@ c_main, c_sub_file, c_diff, c_code_diff, c_phone_diff, c_city_diff, (
 ) = (0, 0, 0, 0, 0, 0, 0)
 diff_df = pd.DataFrame()
 
-# جلب قاعدة بيانات عملاء أطلس لتكون الملف الرئيسي (Main)
 df_main = load_google_sheet(FIXED_GOOGLE_SHEET_URL)
 
 if df_main is not None and active_sub is not None:
@@ -180,7 +168,6 @@ if df_main is not None and active_sub is not None:
     def clean_series(series, is_phone=False):
       if series is None:
         return pd.Series([""] * len(series))
-
       s = (
           series.astype(str)
           .str.replace(r"\.0$", "", regex=True)
@@ -188,18 +175,16 @@ if df_main is not None and active_sub is not None:
           .fillna("")
       )
       s = s.replace(["nan", "None", "NAT", "nat", ""], "")
-
       if is_phone:
         s = s.str.replace(r"\D", "", regex=True)
         s = s.str.replace(r"^00", "", regex=True)
       else:
         s = s.str.replace(r"\s+", " ", regex=True).str.strip()
-
       return s
 
 
-    df_m = df_main.copy()  # أطلس (الرئيسي)
-    df_s = df_sub.copy()  # coustmer info 2 (المقارنة الفرعي)
+    df_m = df_main.copy()
+    df_s = df_sub.copy()
 
     df_m["clean_id"] = clean_series(df_m[code_col])
     df_s["clean_id"] = clean_series(df_s[code_col])
@@ -248,7 +233,6 @@ if df_main is not None and active_sub is not None:
       df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=False)
       df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=False)
 
-    # الدمج بحيث تكون أطلس هي الـ left والملف الفرعي هو الـ right
     merged = pd.merge(
         df_m,
         df_s,
@@ -317,7 +301,7 @@ if df_main is not None and active_sub is not None:
           record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
           diff_records.append(record)
 
-      elif merge_status == "left_only":  # موجود في أطلس وغير موجود في الملف الفرعي
+      elif merge_status == "left_only":
         code_diff_count += 1
         record = {"الكود": idx}
         for pc in phone_cols:
@@ -332,9 +316,7 @@ if df_main is not None and active_sub is not None:
         record["الحالة"] = "موجود في أطلس فقط"
         diff_records.append(record)
 
-      elif (
-          merge_status == "right_only"
-      ):  # موجود في الملف الفرعي وغير موجود في أطلس
+      elif merge_status == "right_only":
         code_diff_count += 1
         record = {"الكود": idx}
         for pc in phone_cols:
@@ -345,7 +327,7 @@ if df_main is not None and active_sub is not None:
           record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
         for ac in address_cols:
           record[f"{ac} (الرئيسي - أطلس)"] = "غير موجود"
-          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
+          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
         record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
         diff_records.append(record)
 
@@ -509,7 +491,6 @@ if not diff_df.empty:
     rows_html = ""
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
-
       cells_html = f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">{i}</td>'
 
       for col_name in cols_to_show:
