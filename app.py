@@ -158,7 +158,6 @@ if df_main is not None and active_sub is not None:
     df_main.columns = df_main.columns.astype(str).str.strip()
 
 
-    # دالة ذكية للتعرف على عمود الكود بالبحث عن قيم تببأ بحرف ورقم (مثل K564 أو E830)
     def get_smart_code_col(df):
       for col in df.columns:
         sample_vals = df[col].astype(str).str.upper()
@@ -224,7 +223,6 @@ if df_main is not None and active_sub is not None:
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
 
-    # دالة مطابقة الأعمدة بمرونة عالية
     def find_matching_cols(cols_m, cols_s, keywords):
       matched_pairs = []
       used_s = set()
@@ -247,20 +245,20 @@ if df_main is not None and active_sub is not None:
           if best_match:
             used_s.add(best_match)
             matched_pairs.append((cm, best_match))
-
-      # إذا لم يجد عبر الكلمات المفتاحية، اربط الأعمدة المتطابقة في الاسم تماماً
-      if not matched_pairs:
-        common = set(cols_m).intersection(set(cols_s))
-        for c in common:
-          if c not in ["unified_id", "clean_id"]:
-            matched_pairs.append((c, c))
-
       return matched_pairs
 
 
     phone_keywords = ["هاتف", "رقم", "phone", "jawwal", "موبايل", "mobile"]
     city_keywords = ["مدين", "city", "محافظ", "منطق", "area", "province"]
-    address_keywords = ["عنوان", "address", "سكن", "استلام", "شارع", "location"]
+    address_keywords = [
+        "عنوان",
+        "address",
+        "سكن",
+        "استلام",
+        "شارع",
+        "location",
+        "البطاقة",
+    ]
 
     phone_pairs = find_matching_cols(df_m.columns, df_s.columns, phone_keywords)
     city_pairs = find_matching_cols(df_m.columns, df_s.columns, city_keywords)
@@ -268,12 +266,21 @@ if df_main is not None and active_sub is not None:
         df_m.columns, df_s.columns, address_keywords
     )
 
-    # إذا كانت الأعمدة لم تُكتشف بالطريقة التقليدية، قم بربط جميع الأعمدة النصية المشتركة تلقائياً للمقارنة الشاملة
-    if not address_pairs and not city_pairs and not phone_pairs:
-      all_common = set(df_m.columns).intersection(set(df_s.columns))
-      for c in all_common:
-        if c not in ["unified_id", "clean_id"]:
-          address_pairs.append((c, c))
+    # ضمان شامل: إذا لم يتم العثور على أزواج للعناوين عبر الكلمات المفتاحية، نقوم بربط الأعمدة المتشابهة في الترتيب أو مقارنة جميع الأعمدة النصية المشتركة
+    if not address_pairs:
+      exclude_cols = ["unified_id", "clean_id"]
+      m_texts = [
+          c
+          for c in df_m.columns
+          if c not in exclude_cols and c not in [p[0] for p in phone_pairs]
+      ]
+      s_texts = [
+          c
+          for c in df_s.columns
+          if c not in exclude_cols and c not in [p[1] for p in phone_pairs]
+      ]
+      for m_col, s_col in zip(m_texts, s_texts):
+        address_pairs.append((m_col, s_col))
 
 
     def clean_val(series, is_phone=False):
@@ -399,7 +406,6 @@ if df_main is not None and active_sub is not None:
 
     diff_df = pd.DataFrame(diff_records)
 
-    # خانة توضيحية لمعرفة الأعمدة التي تم اكتشافها لضمان الشفافية التامة
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔍 تقرير فحص الأعمدة المكتشفة")
     st.sidebar.write(f"**عمود الكود بأطلس:** `{code_col_m}`")
@@ -571,7 +577,9 @@ if not diff_df.empty:
             cell_style += " background-color: #ffedd5 !important; color: #c2410c;"
           elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
             cell_style += " background-color: #dcfce7 !important; color: #15803d;"
-          elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
+          elif any(
+              w in col_name for w in ["عنوان", "address", "سكن", "استلام", "شارع"]
+          ):
             cell_style += " background-color: #fef9c3 !important; color: #a16207;"
 
         cells_html += f'<td style="{cell_style}">{val}</td>'
