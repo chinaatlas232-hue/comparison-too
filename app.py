@@ -155,202 +155,217 @@ if df_main is not None and active_sub is not None:
     df_sub.columns = df_sub.columns.astype(str).str.strip()
     df_main.columns = df_main.columns.astype(str).str.strip()
 
-    common_cols = list(set(df_main.columns).intersection(set(df_sub.columns)))
+    # عرض أعمدة الملفات للمساعدة في حال وجود اختلاف بالتسميات
+    with st.expander("🔍 معاينة أسماء الأعمدة في الملفات (للتأكد والتحقق)"):
+      st.write("أعمدة الملف الرئيسي (أطلس):", list(df_main.columns))
+      st.write("أعمدة الملف الفرعي:", list(df_sub.columns))
 
-    if not common_cols:
-      st.error(
-          "⚠️ لا توجد أعمدة مشتركة مطابقة بين الملف الرئيسي والملف الفرعي!"
-          " يرجى التحقق من أسماء الأعمدة."
-      )
-    else:
-      code_col = next(
-          (
-              c
-              for c in common_cols
-              if "كود" in str(c) or "code" in str(c).lower()
-          ),
-          None,
-      )
-      if not code_col:
-        code_col = common_cols[0]
+    # البحث الذكي عن عمود الكود (المعرف)
+    def find_best_col(columns, keywords):
+      for kw in keywords:
+        for col in columns:
+          if kw in str(col).lower():
+            return col
+      return None
 
-      def clean_series(series, is_phone=False):
-        if series is None:
-          return pd.Series([""] * len(series))
-        s = (
-            series.astype(str)
-            .str.replace(r"\.0$", "", regex=True)
-            .str.strip()
-            .fillna("")
+    code_keywords = ["كود", "code", "id", "رقم العميل", "الرقم", "معرف"]
+    code_col_m = find_best_col(df_main.columns, code_keywords)
+    code_col_s = find_best_col(df_sub.columns, code_keywords)
+
+    if not code_col_m:
+      code_col_m = df_main.columns[0]
+    if not code_col_s:
+      code_col_s = df_sub.columns[0]
+
+    # دمج الملفين بناءً على عمود الكود بعد توحيد تسميته المؤقتة
+    df_m = df_main.copy()
+    df_s = df_sub.copy()
+
+    df_m.rename(columns={code_col_m: "unified_id"}, inplace=True)
+    df_s.rename(columns={code_col_s: "unified_id"}, inplace=True)
+
+    def clean_series(series, is_phone=False):
+      if series is None:
+        return pd.Series([""] * len(series))
+      s = (
+          series.astype(str)
+          .str.replace(r"\.0$", "", regex=True)
+          .str.strip()
+          .fillna("")
+      )
+      s = s.replace(["nan", "None", "NAT", "nat", ""], "")
+      if is_phone:
+        s = s.str.replace(r"\D", "", regex=True)
+        s = s.str.replace(r"^00", "", regex=True)
+      else:
+        s = s.str.replace(r"\s+", " ", regex=True).str.strip()
+      return s
+
+    df_m["clean_id"] = clean_series(df_m["unified_id"])
+    df_s["clean_id"] = clean_series(df_s["unified_id"])
+
+    df_m = df_m[
+        (df_m["clean_id"] != "")
+        & (df_m["clean_id"].str.lower() != "nan")
+        & (df_m["clean_id"].notna())
+    ]
+    df_s = df_s[
+        (df_s["clean_id"] != "")
+        & (df_s["clean_id"].str.lower() != "nan")
+        & (df_s["clean_id"].notna())
+    ]
+
+    c_main = len(df_m["clean_id"].unique())
+    c_sub_file = len(df_s["clean_id"].unique())
+
+    df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
+    df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
+
+    # تحديد الأعمدة المشتركة للمقارنة (ما عدا المعرف)
+    common_cols = [
+        c
+        for c in set(df_m.columns).intersection(set(df_s.columns))
+        if c not in ["unified_id", "clean_id"]
+    ]
+
+    phone_cols = [
+        c
+        for c in common_cols
+        if any(
+            k in str(c).lower() for k in ["هاتف", "رقم", "phone", "jawwal", "موبايل"]
         )
-        s = s.replace(["nan", "None", "NAT", "nat", ""], "")
-        if is_phone:
-          s = s.str.replace(r"\D", "", regex=True)
-          s = s.str.replace(r"^00", "", regex=True)
-        else:
-          s = s.str.replace(r"\s+", " ", regex=True).str.strip()
-        return s
+    ]
+    city_cols = [
+        c
+        for c in common_cols
+        if any(
+            k in str(c).lower()
+            for k in ["مدين", "city", "محافظ", "منطق", "area"]
+        )
+    ]
+    address_cols = [
+        c
+        for c in common_cols
+        if any(
+            k in str(c).lower()
+            for k in ["عنوان", "address", "سكن", "استلام", "شارع"]
+        )
+    ]
 
-      df_m = df_main.copy()
-      df_s = df_sub.copy()
+    for c in phone_cols:
+      df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=True)
+      df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=True)
 
-      df_m["clean_id"] = clean_series(df_m[code_col])
-      df_s["clean_id"] = clean_series(df_s[code_col])
+    for c in city_cols + address_cols + [
+        col for col in common_cols if col not in phone_cols + city_cols + address_cols
+    ]:
+      df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=False)
+      df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=False)
 
-      df_m = df_m[
-          (df_m["clean_id"] != "")
-          & (df_m["clean_id"].str.lower() != "nan")
-          & (df_m["clean_id"].notna())
-      ]
-      df_s = df_s[
-          (df_s["clean_id"] != "")
-          & (df_s["clean_id"].str.lower() != "nan")
-          & (df_s["clean_id"].notna())
-      ]
+    merged = pd.merge(
+        df_m,
+        df_s,
+        on="clean_id",
+        how="outer",
+        suffixes=("_m", "_s"),
+        indicator=True,
+    )
 
-      c_main = len(df_m["clean_id"].unique())
-      c_sub_file = len(df_s["clean_id"].unique())
+    diff_records = []
+    code_diff_count = 0
+    phone_diff_count = 0
+    city_diff_count = 0
+    address_diff_count = 0
 
-      df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
-      df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
+    for _, row in merged.iterrows():
+      idx = row["clean_id"]
+      merge_status = row["_merge"]
 
-      phone_cols = [
-          c
-          for c in common_cols
-          if "هاتف" in str(c) or "رقم" in str(c) or "phone" in str(c).lower()
-      ]
-      city_cols = [
-          c
-          for c in common_cols
-          if "مدين" in str(c) or "city" in str(c).lower() or "محافظ" in str(c)
-      ]
-      address_cols = [
-          c
-          for c in common_cols
-          if "عنوان" in str(c)
-          or "address" in str(c).lower()
-          or "سكن" in str(c)
-          or "استلام" in str(c)
-      ]
+      if merge_status == "both":
+        has_p_diff, has_ci_diff, has_a_diff = False, False, False
 
-      for c in phone_cols:
-        df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=True)
-        df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=True)
+        for pc in phone_cols:
+          if row.get(f"cl_{pc}_m", "") != row.get(f"cl_{pc}_s", ""):
+            has_p_diff = True
+        for cic in city_cols:
+          if row.get(f"cl_{cic}_m", "") != row.get(f"cl_{cic}_s", ""):
+            has_ci_diff = True
+        for ac in address_cols:
+          if row.get(f"cl_{ac}_m", "") != row.get(f"cl_{ac}_s", ""):
+            has_a_diff = True
 
-      for c in city_cols + address_cols:
-        df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=False)
-        df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=False)
+        if has_p_diff or has_ci_diff or has_a_diff:
+          if has_p_diff:
+            phone_diff_count += 1
+          if has_ci_diff:
+            city_diff_count += 1
+          if has_a_diff:
+            address_diff_count += 1
 
-      merged = pd.merge(
-          df_m,
-          df_s,
-          on="clean_id",
-          how="outer",
-          suffixes=("_m", "_s"),
-          indicator=True,
-      )
+          diff_labels = []
+          if has_p_diff:
+            diff_labels.append("هاتف")
+          if has_ci_diff:
+            diff_labels.append("مدينة")
+          if has_a_diff:
+            diff_labels.append("عنوان")
 
-      diff_records = []
-      code_diff_count = 0
-      phone_diff_count = 0
-      city_diff_count = 0
-      address_diff_count = 0
-
-      for _, row in merged.iterrows():
-        idx = row["clean_id"]
-        merge_status = row["_merge"]
-
-        if merge_status == "both":
-          has_p_diff, has_ci_diff, has_a_diff = False, False, False
-
-          for pc in phone_cols:
-            if row.get(f"cl_{pc}_m", "") != row.get(f"cl_{pc}_s", ""):
-              has_p_diff = True
-          for cic in city_cols:
-            if row.get(f"cl_{cic}_m", "") != row.get(f"cl_{cic}_s", ""):
-              has_ci_diff = True
-          for ac in address_cols:
-            if row.get(f"cl_{ac}_m", "") != row.get(f"cl_{ac}_s", ""):
-              has_a_diff = True
-
-          if has_p_diff or has_ci_diff or has_a_diff:
-            if has_p_diff:
-              phone_diff_count += 1
-            if has_ci_diff:
-              city_diff_count += 1
-            if has_a_diff:
-              address_diff_count += 1
-
-            diff_labels = []
-            if has_p_diff:
-              diff_labels.append("هاتف")
-            if has_ci_diff:
-              diff_labels.append("مدينة")
-            if has_a_diff:
-              diff_labels.append("عنوان")
-
-            record = {"الكود": idx}
-            for pc in phone_cols:
-              record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
-              record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
-              record[f"cl_{pc}_m"] = row.get(f"cl_{pc}_m", "")
-              record[f"cl_{pc}_s"] = row.get(f"cl_{pc}_s", "")
-            for cic in city_cols:
-              record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
-              record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
-              record[f"cl_{cic}_m"] = row.get(f"cl_{cic}_m", "")
-              record[f"cl_{cic}_s"] = row.get(f"cl_{cic}_s", "")
-            for ac in address_cols:
-              record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
-              record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
-              record[f"cl_{ac}_m"] = row.get(f"cl_{ac}_m", "")
-              record[f"cl_{ac}_s"] = row.get(f"cl_{ac}_s", "")
-
-            record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
-            diff_records.append(record)
-
-        elif merge_status == "left_only":
-          code_diff_count += 1
           record = {"الكود": idx}
           for pc in phone_cols:
             record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
-            record[f"{pc} (المقارنة - الفرعي)"] = "غير موجود"
-          for cic in city_cols:
-            record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
-            record[f"{cic} (المقارنة - الفرعي)"] = "غير موجود"
-          for ac in address_cols:
-            record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
-            record[f"{ac} (المقارنة - الفرعي)"] = "غير موجود"
-          record["الحالة"] = "موجود في أطلس فقط"
-          diff_records.append(record)
-
-        elif merge_status == "right_only":
-          code_diff_count += 1
-          record = {"الكود": idx}
-          for pc in phone_cols:
-            record[f"{pc} (الرئيسي - أطلس)"] = "غير موجود"
             record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
           for cic in city_cols:
-            record[f"{cic} (الرئيسي - أطلس)"] = "غير موجود"
+            record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
             record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
           for ac in address_cols:
-            record[f"{ac} (الرئيسي - أطلس)"] = "غير موجود"
-            record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
-          record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
+            record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
+            record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
+
+          record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
           diff_records.append(record)
 
-      c_diff = (
-          code_diff_count
-          + phone_diff_count
-          + city_diff_count
-          + address_diff_count
-      )
-      c_code_diff = code_diff_count
-      c_phone_diff = phone_diff_count
-      c_city_diff = city_diff_count
-      c_address_diff = address_diff_count
+      elif merge_status == "left_only":
+        code_diff_count += 1
+        record = {"الكود": idx}
+        for pc in phone_cols:
+          record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
+          record[f"{pc} (المقارنة - الفرعي)"] = "غير موجود"
+        for cic in city_cols:
+          record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
+          record[f"{cic} (المقارنة - الفرعي)"] = "غير موجود"
+        for ac in address_cols:
+          record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
+          record[f"{ac} (المقارنة - الفرعي)"] = "غير موجود"
+        record["الحالة"] = "موجود في أطلس فقط"
+        diff_records.append(record)
 
-      diff_df = pd.DataFrame(diff_records)
+      elif merge_status == "right_only":
+        code_diff_count += 1
+        record = {"الكود": idx}
+        for pc in phone_cols:
+          record[f"{pc} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
+        for cic in city_cols:
+          record[f"{cic} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
+        for ac in address_cols:
+          record[f"{ac} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
+        record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
+        diff_records.append(record)
+
+    c_diff = (
+        code_diff_count
+        + phone_diff_count
+        + city_diff_count
+        + address_diff_count
+    )
+    c_code_diff = code_diff_count
+    c_phone_diff = phone_diff_count
+    c_city_diff = city_diff_count
+    c_address_diff = address_diff_count
+
+    diff_df = pd.DataFrame(diff_records)
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
@@ -476,14 +491,9 @@ if not diff_df.empty:
     ]
 
   if not df_display.empty:
-    cols_to_show = [
-        c for c in df_display.columns if not c.startswith("cl_")
-    ]
-    df_to_export = df_display[cols_to_show]
-
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
-      df_to_export.to_excel(writer, index=False, sheet_name="الاختلافات")
+      df_display.to_excel(writer, index=False, sheet_name="الاختلافات")
     excel_data = output.getvalue()
 
     st.download_button(
@@ -497,6 +507,7 @@ if not diff_df.empty:
     )
 
     rows_html = ""
+    cols_to_show = list(df_display.columns)
     for i, (_, row) in enumerate(df_display.iterrows(), 1):
       status_text = str(row["الحالة"]).strip()
       cells_html = f'<td style="padding: 10px; text-align: center; border-bottom: 1px solid #e5e7eb; font-size: 14px; font-weight: bold;">{i}</td>'
@@ -517,29 +528,12 @@ if not diff_df.empty:
           ):
             cell_style += " background-color: #dbeafe !important; color: #1d4ed8; font-weight: bold;"
         else:
-          if "(الرئيسي - أطلس)" in col_name:
-            base_name = col_name.replace(" (الرئيسي - أطلس)", "").strip()
-            val_m = row.get(f"cl_{base_name}_m", "")
-            val_s = row.get(f"cl_{base_name}_s", "")
-            if val_m != val_s:
-              if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
-                cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
-              elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
-                cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
-              elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
-                cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
-
-          elif "(المقارنة - الفرعي)" in col_name:
-            base_name = col_name.replace(" (المقارنة - الفرعي)", "").strip()
-            val_m = row.get(f"cl_{base_name}_m", "")
-            val_s = row.get(f"cl_{base_name}_s", "")
-            if val_m != val_s:
-              if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
-                cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
-              elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
-                cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
-              elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
-                cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
+          if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
+            cell_style += " background-color: #ffedd5 !important; color: #c2410c;"
+          elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
+            cell_style += " background-color: #dcfce7 !important; color: #15803d;"
+          elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
+            cell_style += " background-color: #fef9c3 !important; color: #a16207;"
 
         cells_html += f'<td style="{cell_style}">{val}</td>'
 
@@ -574,6 +568,6 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info(
-      "يرجى رفع ملف المقارنة الفرعي (coustmer info 2) في الشريط الجانبي، حيث"
-      " تم جلب قاعدة بيانات عملاء أطلس كملف رئيسي تلقائياً."
+      "يرجى التأكد من رفع ملف المقارنة الفرعي (coustmer info 2) في الشريط الجانبي"
+      " لتبدأ المقارنة تلقائياً مع ملف أطلس الرئيسي."
   )
