@@ -74,7 +74,9 @@ UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 sub_file_path = os.path.join(UPLOAD_DIR, "coustmer info 2.xlsx")
-FIXED_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1UQG8zRhSiCUPogSZHvWPVgJPCe0OH-1k/edit"
+FIXED_GOOGLE_SHEET_URL = (
+    "https://docs.google.com/spreadsheets/d/1UQG8zRhSiCUPogSZHvWPVgJPCe0OH-1k/edit"
+)
 
 with st.sidebar:
   st.markdown("### 📁 إدارة الملفات والروابط")
@@ -155,34 +157,20 @@ if df_main is not None and active_sub is not None:
     df_sub.columns = df_sub.columns.astype(str).str.strip()
     df_main.columns = df_main.columns.astype(str).str.strip()
 
-    # عرض أعمدة الملفات للمساعدة في حال وجود اختلاف بالتسميات
     with st.expander("🔍 معاينة أسماء الأعمدة في الملفات (للتأكد والتحقق)"):
       st.write("أعمدة الملف الرئيسي (أطلس):", list(df_main.columns))
       st.write("أعمدة الملف الفرعي:", list(df_sub.columns))
 
-    # البحث الذكي عن عمود الكود (المعرف)
-    def find_best_col(columns, keywords):
-      for kw in keywords:
-        for col in columns:
-          if kw in str(col).lower():
-            return col
-      return None
+    # تثبيت الاعتماد على العمود الأول كمعرف/كود رئيسي لضمان الدقة المطلقة
+    code_col_m = df_main.columns[0]
+    code_col_s = df_sub.columns[0]
 
-    code_keywords = ["كود", "code", "id", "رقم العميل", "الرقم", "معرف"]
-    code_col_m = find_best_col(df_main.columns, code_keywords)
-    code_col_s = find_best_col(df_sub.columns, code_keywords)
-
-    if not code_col_m:
-      code_col_m = df_main.columns[0]
-    if not code_col_s:
-      code_col_s = df_sub.columns[0]
-
-    # دمج الملفين بناءً على عمود الكود بعد توحيد تسميته المؤقتة
     df_m = df_main.copy()
     df_s = df_sub.copy()
 
     df_m.rename(columns={code_col_m: "unified_id"}, inplace=True)
     df_s.rename(columns={code_col_s: "unified_id"}, inplace=True)
+
 
     def clean_series(series, is_phone=False):
       if series is None:
@@ -198,20 +186,39 @@ if df_main is not None and active_sub is not None:
         s = s.str.replace(r"\D", "", regex=True)
         s = s.str.replace(r"^00", "", regex=True)
       else:
-        s = s.str.replace(r"\s+", " ", regex=True).str.strip()
+        # توحيد النصوص وحالة الأحرف لتجنب مشاكل المطابقة (مثل اختلاف الحروف الكبيرة والصغيرة)
+        s = (
+            s.str.replace(r"\s+", " ", regex=True)
+            .str.strip()
+            .str.upper()
+        )
       return s
 
-    df_m["clean_id"] = clean_series(df_m["unified_id"])
-    df_s["clean_id"] = clean_series(df_s["unified_id"])
+
+    # تنظيف معرف الكود وضبطه بحروف كبيرة لضمان تطابق E830 تماماً
+    df_m["clean_id"] = (
+        df_m["unified_id"]
+        .astype(str)
+        .str.replace(r"\.0$", "", regex=True)
+        .str.strip()
+        .str.upper()
+    )
+    df_s["clean_id"] = (
+        df_s["unified_id"]
+        .astype(str)
+        .str.replace(r"\.0$", "", regex=True)
+        .str.strip()
+        .str.upper()
+    )
 
     df_m = df_m[
         (df_m["clean_id"] != "")
-        & (df_m["clean_id"].str.lower() != "nan")
+        & (df_m["clean_id"] != "NAN")
         & (df_m["clean_id"].notna())
     ]
     df_s = df_s[
         (df_s["clean_id"] != "")
-        & (df_s["clean_id"].str.lower() != "nan")
+        & (df_s["clean_id"] != "NAN")
         & (df_s["clean_id"].notna())
     ]
 
@@ -221,7 +228,6 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-    # تحديد الأعمدة المشتركة للمقارنة (ما عدا المعرف)
     common_cols = [
         c
         for c in set(df_m.columns).intersection(set(df_s.columns))
