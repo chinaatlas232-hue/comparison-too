@@ -157,13 +157,37 @@ if df_main is not None and active_sub is not None:
     df_sub.columns = df_sub.columns.astype(str).str.strip()
     df_main.columns = df_main.columns.astype(str).str.strip()
 
-    with st.expander("🔍 معاينة أسماء الأعمدة في الملفات (للتأكد والتحقق)"):
-      st.write("أعمدة الملف الرئيسي (أطلس):", list(df_main.columns))
-      st.write("أعمدة الملف الفرعي:", list(df_sub.columns))
+    with st.expander("🔍 معاينة أعمدة الملفات وأول 3 أسطر للتأكد"):
+      st.write("أعمدة الرئيسي (أطلس):", list(df_main.columns))
+      st.dataframe(df_main.head(3))
+      st.write("أعمدة الفرعي:", list(df_sub.columns))
+      st.dataframe(df_sub.head(3))
 
-    # تثبيت الاعتماد على العمود الأول كمعرف/كود رئيسي لضمان الدقة المطلقة
-    code_col_m = df_main.columns[0]
-    code_col_s = df_sub.columns[0]
+
+    # دالة ذكية للبحث عن عمود يحتوي على كود معين أو اختيار العمود الأول
+    def get_smart_code_col(df, sample_code="E830"):
+      # 1. البحث عما إذا كان أحد الأعمدة يحتوي فعلياً على الكود النموذجي
+      for col in df.columns:
+        matched = (
+            df[col]
+            .astype(str)
+            .str.upper()
+            .str.contains(sample_code, na=False)
+            .any()
+        )
+        if matched:
+          return col
+      # 2. البحث بالنصوص الاحتياطية
+      for kw in ["كود", "code", "id", "رقم العميل", "الرقم", "معرف"]:
+        for col in df.columns:
+          if kw in str(col).lower():
+            return col
+      # 3. افتراض العمود الأول كخيار أخير
+      return df.columns[0]
+
+
+    code_col_m = get_smart_code_col(df_main, "E830")
+    code_col_s = get_smart_code_col(df_sub, "E830")
 
     df_m = df_main.copy()
     df_s = df_sub.copy()
@@ -186,7 +210,6 @@ if df_main is not None and active_sub is not None:
         s = s.str.replace(r"\D", "", regex=True)
         s = s.str.replace(r"^00", "", regex=True)
       else:
-        # توحيد النصوص وحالة الأحرف لتجنب مشاكل المطابقة (مثل اختلاف الحروف الكبيرة والصغيرة)
         s = (
             s.str.replace(r"\s+", " ", regex=True)
             .str.strip()
@@ -195,7 +218,6 @@ if df_main is not None and active_sub is not None:
       return s
 
 
-    # تنظيف معرف الكود وضبطه بحروف كبيرة لضمان تطابق E830 تماماً
     df_m["clean_id"] = (
         df_m["unified_id"]
         .astype(str)
