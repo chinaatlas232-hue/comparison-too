@@ -82,6 +82,9 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
 
+# الرابط المثبت تلقائياً لملف المقارنة (Google Sheets)
+FIXED_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1UQG8zRhSiCUPogSZHvWPVgJPCe0OH-1k/edit"
+
 with st.sidebar:
   st.markdown("### 📁 إدارة الملفات والروابط")
 
@@ -95,14 +98,7 @@ with st.sidebar:
       f.write(uploaded_main.getbuffer())
 
   st.markdown("---")
-
-  # حقل إدخال رابط Google Sheets بدلاً من رفع ملف
-  google_sheet_url = st.text_input(
-      "رابط Google Sheet (الملف المراد مقارنته)",
-      placeholder=(
-          "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit"
-      ),
-  )
+  st.info("🔗 تم ربط ملف المقارنة تلقائياً بـ Google Sheets بنجاح.")
 
   st.markdown("---")
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -162,9 +158,8 @@ c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = 
 )
 diff_df = pd.DataFrame()
 
-df_new = None
-if google_sheet_url:
-  df_new = load_google_sheet(google_sheet_url)
+# جلب بيانات المقارنة تلقائياً من الرابط الثابت
+df_new = load_google_sheet(FIXED_GOOGLE_SHEET_URL)
 
 if active_main and df_new is not None:
   try:
@@ -536,7 +531,7 @@ if not diff_df.empty:
             if val_m != val_n:
               if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
                 cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
-              elif any(w in con_col_name for w in ["مدين", "city", "محافظ"]):
+              elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
                 cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
               elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
                 cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
@@ -563,6 +558,6 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info(
-      "يرجى رفع الملف الرئيسي وإدخال رابط Google Sheet للمقارنة لعرض"
-      " الاختلافات."
+      "يرجى رفع الملف الرئيسي (Master File) في الشريط الجانبي لتبدأ عملية"
+      " المقارنة تلقائياً مع رابط Google Sheets."
   )
