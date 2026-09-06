@@ -210,41 +210,45 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-    # مطابقة ذكية ودقيقة للأعمدة المتشابهة في المعنى بين الملفين
+    # --- تحسين خوارزمية مطابقة الأعمدة بذكاء بناءً على المعنى ---
     pairs = []
     used_s = set()
 
-    for cm in df_m.columns:
-      if cm in ["unified_id", "clean_id"]:
-        continue
-      cm_clean = (
-          str(cm)
+
+    def normalize_str(text):
+      return (
+          str(text)
           .strip()
           .replace("أ", "ا")
           .replace("إ", "ا")
           .replace("آ", "ا")
+          .replace("ة", "ه")
           .lower()
       )
+
+
+    # استخراج كافة أعمدة الملف الفرعي المتاحة (عدا المعرف)
+    available_s_cols = [
+        c for c in df_s.columns if c not in ["unified_id", "clean_id"]
+    ]
+
+    for cm in df_m.columns:
+      if cm in ["unified_id", "clean_id"]:
+        continue
+
+      cm_norm = normalize_str(cm)
       best_match = None
 
-      # 1. محاولة مطابقة دقيقة أو جزئية قوية بالاسم
-      for cs in df_s.columns:
-        if cs in ["unified_id", "clean_id"] or cs in used_s:
+      # 1. مطابقة دقيقة أو جزئية قوية بالاسم
+      for cs in available_s_cols:
+        if cs in used_s:
           continue
-        cs_clean = (
-            str(cs)
-            .strip()
-            .replace("أ", "ا")
-            .replace("إ", "ا")
-            .replace("آ", "ا")
-            .lower()
-        )
-
-        if cm_clean == cs_clean or cm_clean in cs_clean or cs_clean in cm_clean:
+        cs_norm = normalize_str(cs)
+        if cm_norm == cs_norm or cm_norm in cs_norm or cs_norm in cm_norm:
           best_match = cs
           break
 
-      # 2. مطابقة ذكية خاصة لحقول العنوان أو الاستلام إذا توافقت الكلمات الدلالية
+      # 2. مطابقة ذكية مخصصة للحقول الحساسة (العنوان، الاستلام، البضاعة، السكن)
       if not best_match:
         address_keywords = [
             "عنوان",
@@ -255,28 +259,21 @@ if df_main is not None and active_sub is not None:
             "address",
             "location",
         ]
-        is_cm_address = any(kw in cm_clean for kw in address_keywords)
+        is_cm_address = any(kw in cm_norm for kw in address_keywords)
 
         if is_cm_address:
-          for cs in df_s.columns:
-            if cs in ["unified_id", "clean_id"] or cs in used_s:
+          for cs in available_s_cols:
+            if cs in used_s:
               continue
-            cs_clean = (
-                str(cs)
-                .strip()
-                .replace("أ", "ا")
-                .replace("إ", "ا")
-                .replace("آ", "ا")
-                .lower()
-            )
-            if any(kw in cs_clean for kw in address_keywords):
+            cs_norm = normalize_str(cs)
+            if any(kw in cs_norm for kw in address_keywords):
               best_match = cs
               break
 
-      # 3. الربط الاحتياطي بالترتيب إذا تعذر التطابق بالاسم
+      # 3. إذا لم يوجد تطابق بالاسم، نبحث عن أول عمود متاح لم يُستخدم بعد
       if not best_match:
-        for cs in df_s.columns:
-          if cs not in ["unified_id", "clean_id"] and cs not in used_s:
+        for cs in available_s_cols:
+          if cs not in used_s:
             best_match = cs
             break
 
@@ -306,6 +303,7 @@ if df_main is not None and active_sub is not None:
             .str.replace("أ", "ا")
             .str.replace("إ", "ا")
             .str.replace("آ", "ا")
+            .str.replace("ة", "ه")
         )
       return s
 
@@ -357,7 +355,7 @@ if df_main is not None and active_sub is not None:
               if "مدينة" not in diff_labels:
                 diff_labels.append("مدينة")
             else:
-              # أي عمود آخر (مثل العنوان أو استلام البضاعة أو غيرها) سيتم اعتباره ضمن اختلافات العنوان
+              # أي اختلاف في العنوان، استلام البضاعة، أو الحقول النصية الأخرى يوجه لبطاقة العنوان
               has_a_diff = True
               if "عنوان" not in diff_labels:
                 diff_labels.append("عنوان")
