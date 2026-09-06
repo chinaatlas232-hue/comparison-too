@@ -210,7 +210,7 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-    # مطابقة الأعمدة بمرونة عالية بناءً على محتوى اسم العمود (مثل الاسم، الهاتف، المحافظات، استلام البضاعة)
+    # مطابقة ذكية ودقيقة للأعمدة المتشابهة في المعنى بين الملفين
     pairs = []
     used_s = set()
 
@@ -227,6 +227,7 @@ if df_main is not None and active_sub is not None:
       )
       best_match = None
 
+      # 1. محاولة مطابقة دقيقة أو جزئية قوية بالاسم
       for cs in df_s.columns:
         if cs in ["unified_id", "clean_id"] or cs in used_s:
           continue
@@ -243,8 +244,37 @@ if df_main is not None and active_sub is not None:
           best_match = cs
           break
 
+      # 2. مطابقة ذكية خاصة لحقول العنوان أو الاستلام إذا توافقت الكلمات الدلالية
       if not best_match:
-        # البحث بالترتيب أو افتراض الأقرب إذا تقاربت الأعمدة
+        address_keywords = [
+            "عنوان",
+            "سكن",
+            "شارع",
+            "استلام",
+            "البضاعة",
+            "address",
+            "location",
+        ]
+        is_cm_address = any(kw in cm_clean for kw in address_keywords)
+
+        if is_cm_address:
+          for cs in df_s.columns:
+            if cs in ["unified_id", "clean_id"] or cs in used_s:
+              continue
+            cs_clean = (
+                str(cs)
+                .strip()
+                .replace("أ", "ا")
+                .replace("إ", "ا")
+                .replace("آ", "ا")
+                .lower()
+            )
+            if any(kw in cs_clean for kw in address_keywords):
+              best_match = cs
+              break
+
+      # 3. الربط الاحتياطي بالترتيب إذا تعذر التطابق بالاسم
+      if not best_match:
         for cs in df_s.columns:
           if cs not in ["unified_id", "clean_id"] and cs not in used_s:
             best_match = cs
@@ -327,6 +357,7 @@ if df_main is not None and active_sub is not None:
               if "مدينة" not in diff_labels:
                 diff_labels.append("مدينة")
             else:
+              # أي عمود آخر (مثل العنوان أو استلام البضاعة أو غيرها) سيتم اعتباره ضمن اختلافات العنوان
               has_a_diff = True
               if "عنوان" not in diff_labels:
                 diff_labels.append("عنوان")
