@@ -81,10 +81,9 @@ UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 main_file_path = os.path.join(UPLOAD_DIR, "master_file.xlsx")
-new_file_path = os.path.join(UPLOAD_DIR, "new_file.xlsx")
 
 with st.sidebar:
-  st.markdown("### 📁 إدارة الملفات")
+  st.markdown("### 📁 إدارة الملفات والروابط")
 
   uploaded_main = st.file_uploader(
       "الملف الرئيسي (Master File)", type=["xlsx", "xls"], key="main_file"
@@ -97,14 +96,13 @@ with st.sidebar:
 
   st.markdown("---")
 
-  uploaded_new = st.file_uploader(
-      "الملف المراد مقارنته (New File)", type=["xlsx", "xls"], key="new_file"
+  # حقل إدخال رابط Google Sheets بدلاً من رفع ملف
+  google_sheet_url = st.text_input(
+      "رابط Google Sheet (الملف المراد مقارنته)",
+      placeholder=(
+          "https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit"
+      ),
   )
-  if uploaded_new is not None:
-    if os.path.exists(new_file_path):
-      os.remove(new_file_path)
-    with open(new_file_path, "wb") as f:
-      f.write(uploaded_new.getbuffer())
 
   st.markdown("---")
   st.markdown("### ⚙️ إعدادات التحكم")
@@ -116,8 +114,6 @@ with st.sidebar:
   ):
     if os.path.exists(main_file_path):
       os.remove(main_file_path)
-    if os.path.exists(new_file_path):
-      os.remove(new_file_path)
     for key in list(st.session_state.keys()):
       del st.session_state[key]
     st.query_params.clear()
@@ -127,11 +123,6 @@ active_main = (
     main_file_path
     if os.path.exists(main_file_path)
     else (uploaded_main if uploaded_main else None)
-)
-active_new = (
-    new_file_path
-    if os.path.exists(new_file_path)
-    else (uploaded_new if uploaded_new else None)
 )
 
 if "active_filter" not in st.session_state:
@@ -144,12 +135,20 @@ if "filter" in st.query_params:
     st.rerun()
 
 
-def load_and_clean_data(file1, file2):
-  df1 = pd.read_excel(file1, sheet_name=0)
-  df2 = pd.read_excel(file2, sheet_name=0)
-  df1.columns = df1.columns.str.strip()
-  df2.columns = df2.columns.str.strip()
-  return df1, df2
+def load_google_sheet(url):
+  try:
+    if "docs.google.com/spreadsheets" in url:
+      if "/edit" in url:
+        export_url = url.split("/edit")[0] + "/export?format=xlsx"
+      else:
+        export_url = url + "/export?format=xlsx"
+      df = pd.read_excel(export_url, sheet_name=0)
+      df.columns = df.columns.str.strip()
+      return df
+    return None
+  except Exception as e:
+    st.sidebar.error(f"تعذر جلب البيانات من Google Sheet: {e}")
+    return None
 
 
 c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = (
@@ -163,11 +162,14 @@ c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = 
 )
 diff_df = pd.DataFrame()
 
-if (
-    os.path.exists(main_file_path) and os.path.exists(new_file_path)
-) or (active_main and active_new):
+df_new = None
+if google_sheet_url:
+  df_new = load_google_sheet(google_sheet_url)
+
+if active_main and df_new is not None:
   try:
-    df_main, df_new = load_and_clean_data(active_main, active_new)
+    df_main = pd.read_excel(active_main, sheet_name=0)
+    df_main.columns = df_main.columns.str.strip()
 
     common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
 
@@ -286,7 +288,6 @@ if (
             diff_labels.append("عنوان")
 
           record = {"الكود": idx}
-          # حفظ القيم الأصلية مع القيم المنظفة للمقارنة الدقيقة في الجدول
           for pc in phone_cols:
             record[f"{pc} (الرئيسي)"] = row.get(f"{pc}_m", "")
             record[f"{pc} (المقارنة)"] = row.get(f"{pc}_n", "")
@@ -474,7 +475,6 @@ if not diff_df.empty:
     ]
 
   if not df_display.empty:
-    # استبعاد أعمدة الفحص الداخلية (cl_*) من العرض المباشر في الجدول
     cols_to_show = [
         c for c in df_display.columns if not c.startswith("cl_")
     ]
@@ -517,12 +517,10 @@ if not diff_df.empty:
           ):
             cell_style += " background-color: #dbeafe !important; color: #1d4ed8; font-weight: bold;"
         else:
-          # التحقق بدقة من القيمة بين (الرئيسي) و (المقارنة) لتلوين الخلية المتغيرة فقط
           if "(الرئيسي)" in col_name:
             base_name = col_name.replace(" (الرئيسي)", "").strip()
             val_m = row.get(f"cl_{base_name}_m", "")
             val_n = row.get(f"cl_{base_name}_n", "")
-            # تلوين الرئيسي فقط إذا كانت قيمته تختلف عن المقارنة
             if val_m != val_n:
               if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
                 cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
@@ -535,11 +533,10 @@ if not diff_df.empty:
             base_name = col_name.replace(" (المقارنة)", "").strip()
             val_m = row.get(f"cl_{base_name}_m", "")
             val_n = row.get(f"cl_{base_name}_n", "")
-            # تلوين المقارنة فقط إذا كانت قيمتها تختلف عن الرئيسي
             if val_m != val_n:
               if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
                 cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
-              elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
+              elif any(w in con_col_name for w in ["مدين", "city", "محافظ"]):
                 cell_style += " background-color: #dcfce7 !important; color: #15803d; font-weight: bold;"
               elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
                 cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
@@ -565,4 +562,7 @@ if not diff_df.empty:
   else:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
-  st.info("لا توجد اختلافات بين الملفين أو لم يتم رفع الملفات بعد.")
+  st.info(
+      "يرجى رفع الملف الرئيسي وإدخال رابط Google Sheet للمقارنة لعرض"
+      " الاختلافات."
+  )
