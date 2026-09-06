@@ -148,6 +148,7 @@ c_main, c_sub_file, c_diff, c_code_diff, c_phone_diff, c_city_diff, (
     c_address_diff
 ) = (0, 0, 0, 0, 0, 0, 0)
 diff_df = pd.DataFrame()
+detected_info_log = {}
 
 df_main = load_google_sheet(FIXED_GOOGLE_SHEET_URL)
 
@@ -258,6 +259,7 @@ if df_main is not None and active_sub is not None:
         "شارع",
         "location",
         "البطاقة",
+        "تفاصيل",
     ]
 
     phone_pairs = find_matching_cols(df_m.columns, df_s.columns, phone_keywords)
@@ -266,21 +268,27 @@ if df_main is not None and active_sub is not None:
         df_m.columns, df_s.columns, address_keywords
     )
 
-    # ضمان شامل: إذا لم يتم العثور على أزواج للعناوين عبر الكلمات المفتاحية، نقوم بربط الأعمدة المتشابهة في الترتيب أو مقارنة جميع الأعمدة النصية المشتركة
-    if not address_pairs:
-      exclude_cols = ["unified_id", "clean_id"]
-      m_texts = [
-          c
-          for c in df_m.columns
-          if c not in exclude_cols and c not in [p[0] for p in phone_pairs]
-      ]
-      s_texts = [
-          c
-          for c in df_s.columns
-          if c not in exclude_cols and c not in [p[1] for p in phone_pairs]
-      ]
-      for m_col, s_col in zip(m_texts, s_texts):
-        address_pairs.append((m_col, s_col))
+    # ضمان إضافي: ربط ذكي شامل لجميع الأعمدة النصية في حال لم يتم العثور على مطابقة صريحة لضمان عدم بقاء أي عمود بدون مقارنة
+    assigned_m = {p[0] for p in phone_pairs + city_pairs + address_pairs}
+    assigned_s = {p[1] for p in phone_pairs + city_pairs + address_pairs}
+
+    for cm in df_m.columns:
+      if (
+          cm not in ["unified_id", "clean_id"]
+          and cm not in assigned_m
+          and len(address_pairs) < 3
+      ):
+        for cs in df_s.columns:
+          if (
+              cs not in ["unified_id", "clean_id"]
+              and cs not in assigned_s
+              and cs not in [p[1] for p in address_pairs]
+          ):
+            # إذا تشابهت الأسماء أو كانت الأعمدة المتبقية
+            if cm == cs or len(df_m.columns) == len(df_s.columns):
+              address_pairs.append((cm, cs))
+              assigned_s.add(cs)
+              break
 
 
     def clean_val(series, is_phone=False):
@@ -408,9 +416,10 @@ if df_main is not None and active_sub is not None:
 
     st.sidebar.markdown("---")
     st.sidebar.markdown("### 🔍 تقرير فحص الأعمدة المكتشفة")
-    st.sidebar.write(f"**عمود الكود بأطلس:** `{code_col_m}`")
-    st.sidebar.write(f"**عمود الكود بالفرعي:** `{code_col_s}`")
-    st.sidebar.write(f"**أعمدة العناوين المقارنة:** {len(address_pairs)}")
+    st.sidebar.write(f"**كود أطلس:** `{code_col_m}`")
+    st.sidebar.write(f"**كود الفرعي:** `{code_col_s}`")
+    st.sidebar.write(f"**أعمدة المدينة:** {len(city_pairs)}")
+    st.sidebar.write(f"**أعمدة العنوان:** {len(address_pairs)}")
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
