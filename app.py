@@ -267,7 +267,7 @@ if df_main is not None and active_sub is not None:
         df_m.columns, df_s.columns, address_keywords
     )
 
-    # التعديل الشامل والجذري: ربط جميع الأعمدة النصية المتبقية لضمان عدم تفويت أي عمعنوان أو تفاصيل تم تعديلها
+    # ضمان ربط جميع الأعمدة النصية الأخرى لضمان عدم تفويت أي عمود عنوان أو ملاحظات
     assigned_m = {p[0] for p in phone_pairs + city_pairs + address_pairs}
     assigned_s = {p[1] for p in phone_pairs + city_pairs + address_pairs}
 
@@ -339,7 +339,10 @@ if df_main is not None and active_sub is not None:
           if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
             has_ci_diff = True
         for cm, cs in address_pairs:
-          if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
+          # مقارنة صارمة للأعمدة النصية والعنوان للكشف عن أي تغيير مثل عمارة خليل آغا وغيرها
+          val_m = str(row.get(f"cl_{cm}_x", "")).strip()
+          val_s = str(row.get(f"cl_{cs}_y", "")).strip()
+          if val_m != val_s:
             has_a_diff = True
 
         if has_p_diff or has_ci_diff or has_a_diff:
