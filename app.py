@@ -80,27 +80,30 @@ st.markdown(
 UPLOAD_DIR = "saved_files"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-# تسمية الملف الرئيسي بالاسم المطلوب
-main_file_path = os.path.join(UPLOAD_DIR, "coustmer info 2.xlsx")
+# تسمية الملف الفرعي المرفوع (coustmer info 2)
+sub_file_path = os.path.join(UPLOAD_DIR, "coustmer info 2.xlsx")
 
-# الرابط المثبت تلقائياً لملف المقارنة (Google Sheets)
+# الرابط المثبت لقاعدة بيانات عملاء أطلس (Google Sheets) لتكون الملف الرئيسي
 FIXED_GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1UQG8zRhSiCUPogSZHvWPVgJPCe0OH-1k/edit"
 
 with st.sidebar:
   st.markdown("### 📁 إدارة الملفات والروابط")
 
-  uploaded_main = st.file_uploader(
-      "الملف الرئيسي (coustmer info 2)", type=["xlsx", "xls"], key="main_file"
+  uploaded_sub = st.file_uploader(
+      "ملف المقارنة الفرعي (coustmer info 2)",
+      type=["xlsx", "xls"],
+      key:="sub_file",
   )
-  if uploaded_main is not None:
-    if os.path.exists(main_file_path):
-      os.remove(main_file_path)
-    with open(main_file_path, "wb") as f:
-      f.write(uploaded_main.getbuffer())
+  if uploaded_sub is not None:
+    if os.path.exists(sub_file_path):
+      os.remove(sub_file_path)
+    with open(sub_file_path, "wb") as f:
+      f.write(uploaded_sub.getbuffer())
 
   st.markdown("---")
   st.info(
-      "🔗 تم ربط قاعدة بيانات عملاء أطلس تلقائياً بـ Google Sheets بنجاح."
+      "🔗 تم اعتماد 'قاعدة بيانات عملاء أطلس' (Google Sheets) كملف رئيسي"
+      " للمقارنة بنجاح."
   )
 
   st.markdown("---")
@@ -111,17 +114,17 @@ with st.sidebar:
       use_container_width=True,
       type="primary",
   ):
-    if os.path.exists(main_file_path):
-      os.remove(main_file_path)
+    if os.path.exists(sub_file_path):
+      os.remove(sub_file_path)
     for key in list(st.session_state.keys()):
       del st.session_state[key]
     st.query_params.clear()
     st.rerun()
 
-active_main = (
-    main_file_path
-    if os.path.exists(main_file_path)
-    else (uploaded_main if uploaded_main else None)
+active_sub = (
+    sub_file_path
+    if os.path.exists(sub_file_path)
+    else (uploaded_sub if uploaded_sub else None)
 )
 
 if "active_filter" not in st.session_state:
@@ -150,26 +153,21 @@ def load_google_sheet(url):
     return None
 
 
-c_main, c_new, c_diff, c_code_diff, c_phone_diff, c_city_diff, c_address_diff = (
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-)
+c_main, c_sub_file, c_diff, c_code_diff, c_phone_diff, c_city_diff, (
+    c_address_diff
+) = (0, 0, 0, 0, 0, 0, 0)
 diff_df = pd.DataFrame()
 
-# جلب بيانات المقارنة تلقائياً من الرابط الثابت
-df_new = load_google_sheet(FIXED_GOOGLE_SHEET_URL)
+# جلب قاعدة بيانات عملاء أطلس لتكون الملف الرئيسي (Main)
+df_main = load_google_sheet(FIXED_GOOGLE_SHEET_URL)
 
-if active_main and df_new is not None:
+if df_main is not None and active_sub is not None:
   try:
-    df_main = pd.read_excel(active_main, sheet_name=0)
+    df_sub = pd.read_excel(active_sub, sheet_name=0)
+    df_sub.columns = df_sub.columns.str.strip()
     df_main.columns = df_main.columns.str.strip()
 
-    common_cols = list(set(df_main.columns).intersection(set(df_new.columns)))
+    common_cols = list(set(df_main.columns).intersection(set(df_sub.columns)))
 
     code_col = next(
         (c for c in common_cols if "كود" in str(c) or "code" in str(c).lower()),
@@ -189,7 +187,6 @@ if active_main and df_new is not None:
           .str.strip()
           .fillna("")
       )
-
       s = s.replace(["nan", "None", "NAT", "nat", ""], "")
 
       if is_phone:
@@ -201,28 +198,28 @@ if active_main and df_new is not None:
       return s
 
 
-    df_m = df_main.copy()
-    df_n = df_new.copy()
+    df_m = df_main.copy()  # أطلس (الرئيسي)
+    df_s = df_sub.copy()  # coustmer info 2 (المقارنة الفرعي)
 
     df_m["clean_id"] = clean_series(df_m[code_col])
-    df_n["clean_id"] = clean_series(df_n[code_col])
+    df_s["clean_id"] = clean_series(df_s[code_col])
 
     df_m = df_m[
         (df_m["clean_id"] != "")
         & (df_m["clean_id"].str.lower() != "nan")
         & (df_m["clean_id"].notna())
     ]
-    df_n = df_n[
-        (df_n["clean_id"] != "")
-        & (df_n["clean_id"].str.lower() != "nan")
-        & (df_n["clean_id"].notna())
+    df_s = df_s[
+        (df_s["clean_id"] != "")
+        & (df_s["clean_id"].str.lower() != "nan")
+        & (df_s["clean_id"].notna())
     ]
 
     c_main = len(df_m["clean_id"].unique())
-    c_new = len(df_n["clean_id"].unique())
+    c_sub_file = len(df_s["clean_id"].unique())
 
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
-    df_n = df_n.drop_duplicates(subset=["clean_id"], keep="last")
+    df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
     phone_cols = [
         c
@@ -245,18 +242,19 @@ if active_main and df_new is not None:
 
     for c in phone_cols:
       df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=True)
-      df_n[f"cl_{c}"] = clean_series(df_n[c], is_phone=True)
+      df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=True)
 
     for c in city_cols + address_cols:
       df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=False)
-      df_n[f"cl_{c}"] = clean_series(df_n[c], is_phone=False)
+      df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=False)
 
+    # الدمج بحيث تكون أطلس هي الـ left والملف الفرعي هو الـ right
     merged = pd.merge(
         df_m,
-        df_n,
+        df_s,
         on="clean_id",
         how="outer",
-        suffixes=("_m", "_n"),
+        suffixes=("_m", "_s"),
         indicator=True,
     )
 
@@ -274,13 +272,13 @@ if active_main and df_new is not None:
         has_p_diff, has_ci_diff, has_a_diff = False, False, False
 
         for pc in phone_cols:
-          if row.get(f"cl_{pc}_m", "") != row.get(f"cl_{pc}_n", ""):
+          if row.get(f"cl_{pc}_m", "") != row.get(f"cl_{pc}_s", ""):
             has_p_diff = True
         for cic in city_cols:
-          if row.get(f"cl_{cic}_m", "") != row.get(f"cl_{cic}_n", ""):
+          if row.get(f"cl_{cic}_m", "") != row.get(f"cl_{cic}_s", ""):
             has_ci_diff = True
         for ac in address_cols:
-          if row.get(f"cl_{ac}_m", "") != row.get(f"cl_{ac}_n", ""):
+          if row.get(f"cl_{ac}_m", "") != row.get(f"cl_{ac}_s", ""):
             has_a_diff = True
 
         if has_p_diff or has_ci_diff or has_a_diff:
@@ -301,52 +299,54 @@ if active_main and df_new is not None:
 
           record = {"الكود": idx}
           for pc in phone_cols:
-            record[f"{pc} (الرئيسي)"] = row.get(f"{pc}_m", "")
-            record[f"{pc} (المقارنة)"] = row.get(f"{pc}_n", "")
+            record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
+            record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
             record[f"cl_{pc}_m"] = row.get(f"cl_{pc}_m", "")
-            record[f"cl_{pc}_n"] = row.get(f"cl_{pc}_n", "")
+            record[f"cl_{pc}_s"] = row.get(f"cl_{pc}_s", "")
           for cic in city_cols:
-            record[f"{cic} (الرئيسي)"] = row.get(f"{cic}_m", "")
-            record[f"{cic} (المقارنة)"] = row.get(f"{cic}_n", "")
+            record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
+            record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
             record[f"cl_{cic}_m"] = row.get(f"cl_{cic}_m", "")
-            record[f"cl_{cic}_n"] = row.get(f"cl_{cic}_n", "")
+            record[f"cl_{cic}_s"] = row.get(f"cl_{cic}_s", "")
           for ac in address_cols:
-            record[f"{ac} (الرئيسي)"] = row.get(f"{ac}_m", "")
-            record[f"{ac} (المقارنة)"] = row.get(f"{ac}_n", "")
+            record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
+            record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
             record[f"cl_{ac}_m"] = row.get(f"cl_{ac}_m", "")
-            record[f"cl_{ac}_n"] = row.get(f"cl_{ac}_n", "")
+            record[f"cl_{ac}_s"] = row.get(f"cl_{ac}_s", "")
 
           record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
           diff_records.append(record)
 
-      elif merge_status == "left_only":
+      elif merge_status == "left_only":  # موجود في أطلس وغير موجود في الملف الفرعي
         code_diff_count += 1
         record = {"الكود": idx}
         for pc in phone_cols:
-          record[f"{pc} (الرئيسي)"] = row.get(f"{pc}_m", "")
-          record[f"{pc} (المقارنة)"] = "غير موجود"
+          record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
+          record[f"{pc} (المقارنة - الفرعي)"] = "غير موجود"
         for cic in city_cols:
-          record[f"{cic} (الرئيسي)"] = row.get(f"{cic}_m", "")
-          record[f"{cic} (المقارنة)"] = "غير موجود"
+          record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
+          record[f"{cic} (المقارنة - الفرعي)"] = "غير موجود"
         for ac in address_cols:
-          record[f"{ac} (الرئيسي)"] = row.get(f"{ac}_m", "")
-          record[f"{ac} (المقارنة)"] = "غير موجود"
-        record["الحالة"] = "موجود في الرئيسي فقط"
+          record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
+          record[f"{ac} (المقارنة - الفرعي)"] = "غير موجود"
+        record["الحالة"] = "موجود في أطلس فقط"
         diff_records.append(record)
 
-      elif merge_status == "right_only":
+      elif (
+          merge_status == "right_only"
+      ):  # موجود في الملف الفرعي وغير موجود في أطلس
         code_diff_count += 1
         record = {"الكود": idx}
         for pc in phone_cols:
-          record[f"{pc} (الرئيسي)"] = "غير موجود"
-          record[f"{pc} (المقارنة)"] = row.get(f"{pc}_n", "")
+          record[f"{pc} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
         for cic in city_cols:
-          record[f"{cic} (الرئيسي)"] = "غير موجود"
-          record[f"{cic} (المقارنة)"] = row.get(f"{cic}_n", "")
+          record[f"{cic} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
         for ac in address_cols:
-          record[f"{ac} (الرئيسي)"] = "غير موجود"
-          record[f"{ac} (المقارنة)"] = row.get(f"{ac}_n", "")
-        record["الحالة"] = "الكود غير موجود بقاعدة البيانات السابقة"
+          record[f"{ac} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
+        record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
         diff_records.append(record)
 
     c_diff = (
@@ -423,17 +423,17 @@ with cols[4]:
 
 with cols[5]:
   st.markdown(
-      f"""<a href="?filter=المقارنة" target="_self" class="custom-card card-new">
-        <div class="card-title">📁 المقارنة</div>
-        <div class="card-value">{c_new}</div>
+      f"""<a href="?filter=الفرعي" target="_self" class="custom-card card-new">
+        <div class="card-title">📁 الفرعي</div>
+        <div class="card-value">{c_sub_file}</div>
     </a>""",
       unsafe_allow_html=True,
   )
 
 with cols[6]:
   st.markdown(
-      f"""<a href="?filter=الرئيسي" target="_self" class="custom-card card-main">
-        <div class="card-title">📦 الرئيسي</div>
+      f"""<a href="?filter=أطلس الرئيسي" target="_self" class="custom-card card-main">
+        <div class="card-title">📦 أطلس</div>
         <div class="card-value">{c_main}</div>
     </a>""",
       unsafe_allow_html=True,
@@ -465,8 +465,7 @@ if not diff_df.empty:
   if current_filter == "فروقات الكود":
     df_display = df_display[
         df_display["الحالة"].str.contains(
-            "موجود في الرئيسي فقط|الكود غير موجود بقاعدة البيانات السابقة",
-            na=False,
+            "موجود في أطلس فقط|موجود في الملف الفرعي فقط", na=False
         )
     ]
   elif current_filter == "فروقات الهاتف":
@@ -475,14 +474,14 @@ if not diff_df.empty:
     df_display = df_display[df_display["الحالة"].str.contains("مدينة", na=False)]
   elif current_filter == "فروقات العنوان":
     df_display = df_display[df_display["الحالة"].str.contains("عنوان", na=False)]
-  elif current_filter == "الرئيسي":
+  elif current_filter == "أطلس الرئيسي":
     df_display = df_display[
-        df_display["الحالة"].str.contains("موجود في الرئيسي فقط", na=False)
+        df_display["الحالة"].str.contains("موجود في أطلس فقط", na=False)
     ]
-  elif current_filter == "المقارنة":
+  elif current_filter == "الفرعي":
     df_display = df_display[
         df_display["الحالة"].str.contains(
-            "الكود غير موجود بقاعدة البيانات السابقة", na=False
+            "موجود في الملف الفرعي فقط", na=False
         )
     ]
 
@@ -524,16 +523,16 @@ if not diff_df.empty:
           cell_style += " background-color: #fee2e2 !important; color: #b91c1c; font-weight: bold;"
         elif col_name == "الكود":
           if (
-              "موجود في الرئيسي فقط" in status_text
-              or "الكود غير موجود بقاعدة البيانات السابقة" in status_text
+              "موجود في أطلس فقط" in status_text
+              or "موجود في الملف الفرعي فقط" in status_text
           ):
             cell_style += " background-color: #dbeafe !important; color: #1d4ed8; font-weight: bold;"
         else:
-          if "(الرئيسي)" in col_name:
-            base_name = col_name.replace(" (الرئيسي)", "").strip()
+          if "(الرئيسي - أطلس)" in col_name:
+            base_name = col_name.replace(" (الرئيسي - أطلس)", "").strip()
             val_m = row.get(f"cl_{base_name}_m", "")
-            val_n = row.get(f"cl_{base_name}_n", "")
-            if val_m != val_n:
+            val_s = row.get(f"cl_{base_name}_s", "")
+            if val_m != val_s:
               if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
                 cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
               elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
@@ -541,11 +540,11 @@ if not diff_df.empty:
               elif any(w in col_name for w in ["عنوان", "address", "سكن", "استلام"]):
                 cell_style += " background-color: #fef9c3 !important; color: #a16207; font-weight: bold;"
 
-          elif "(المقارنة)" in col_name:
-            base_name = col_name.replace(" (المقارنة)", "").strip()
+          elif "(المقارنة - الفرعي)" in col_name:
+            base_name = col_name.replace(" (المقارنة - الفرعي)", "").strip()
             val_m = row.get(f"cl_{base_name}_m", "")
-            val_n = row.get(f"cl_{base_name}_n", "")
-            if val_m != val_n:
+            val_s = row.get(f"cl_{base_name}_s", "")
+            if val_m != val_s:
               if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
                 cell_style += " background-color: #ffedd5 !important; color: #c2410c; font-weight: bold;"
               elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
@@ -575,6 +574,6 @@ if not diff_df.empty:
     st.info("لا توجد بيانات مطابقة لهذا الفلتر.")
 else:
   st.info(
-      "يرجى رفع الملف الرئيسي (coustmer info 2) في الشريط الجانبي لتبدأ عملية"
-      " المقارنة تلقائياً مع قاعدة بيانات عملاء أطلس."
+      "يرجى رفع ملف المقارنة الفرعي (coustmer info 2) في الشريط الجانبي، حيث"
+      " تم جلب قاعدة بيانات عملاء أطلس كملف رئيسي تلقائياً."
   )
