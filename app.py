@@ -148,7 +148,6 @@ c_main, c_sub_file, c_diff, c_code_diff, c_phone_diff, c_city_diff, (
     c_address_diff
 ) = (0, 0, 0, 0, 0, 0, 0)
 diff_df = pd.DataFrame()
-detected_info_log = {}
 
 df_main = load_google_sheet(FIXED_GOOGLE_SHEET_URL)
 
@@ -268,27 +267,17 @@ if df_main is not None and active_sub is not None:
         df_m.columns, df_s.columns, address_keywords
     )
 
-    # ضمان إضافي: ربط ذكي شامل لجميع الأعمدة النصية في حال لم يتم العثور على مطابقة صريحة لضمان عدم بقاء أي عمود بدون مقارنة
+    # التعديل الشامل والجذري: ربط جميع الأعمدة النصية المتبقية لضمان عدم تفويت أي عمعنوان أو تفاصيل تم تعديلها
     assigned_m = {p[0] for p in phone_pairs + city_pairs + address_pairs}
     assigned_s = {p[1] for p in phone_pairs + city_pairs + address_pairs}
 
     for cm in df_m.columns:
-      if (
-          cm not in ["unified_id", "clean_id"]
-          and cm not in assigned_m
-          and len(address_pairs) < 3
-      ):
+      if cm not in ["unified_id", "clean_id"] and cm not in assigned_m:
         for cs in df_s.columns:
-          if (
-              cs not in ["unified_id", "clean_id"]
-              and cs not in assigned_s
-              and cs not in [p[1] for p in address_pairs]
-          ):
-            # إذا تشابهت الأسماء أو كانت الأعمدة المتبقية
-            if cm == cs or len(df_m.columns) == len(df_s.columns):
-              address_pairs.append((cm, cs))
-              assigned_s.add(cs)
-              break
+          if cs not in ["unified_id", "clean_id"] and cs not in assigned_s:
+            address_pairs.append((cm, cs))
+            assigned_s.add(cs)
+            break
 
 
     def clean_val(series, is_phone=False):
@@ -418,8 +407,7 @@ if df_main is not None and active_sub is not None:
     st.sidebar.markdown("### 🔍 تقرير فحص الأعمدة المكتشفة")
     st.sidebar.write(f"**كود أطلس:** `{code_col_m}`")
     st.sidebar.write(f"**كود الفرعي:** `{code_col_s}`")
-    st.sidebar.write(f"**أعمدة المدينة:** {len(city_pairs)}")
-    st.sidebar.write(f"**أعمدة العنوان:** {len(address_pairs)}")
+    st.sidebar.write(f"**إجمالي الأعمدة المقارنة:** {len(address_pairs)}")
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
