@@ -160,22 +160,10 @@ if df_main is not None and active_sub is not None:
 
     def get_smart_code_col(df):
       for col in df.columns:
-        sample_vals = df[col].astype(str).str.upper()
-        if sample_vals.str.contains(r"^[A-Z]\d+", regex=True).any():
+        if any(
+            kw in str(col).lower() for kw in ["كود", "code", "id", "الرقم"]
+        ):
           return col
-      for kw in [
-          "كود",
-          "code",
-          "id",
-          "رقم العميل",
-          "الرقم",
-          "معرف",
-          "رمز",
-          "customer",
-      ]:
-        for col in df.columns:
-          if kw in str(col).lower():
-            return col
       return df.columns[0]
 
 
@@ -222,63 +210,28 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-
-    def find_matching_cols(cols_m, cols_s, keywords):
-      matched_pairs = []
-      used_s = set()
-      for cm in cols_m:
-        if cm in ["unified_id", "clean_id"]:
+    # مطابقة الأعمدة بناءً على الاسم الموحد تماماً بين الملفين
+    common_columns = []
+    for col_m in df_m.columns:
+      if col_m in ["unified_id", "clean_id"]:
+        continue
+      for col_s in df_s.columns:
+        if col_s in ["unified_id", "clean_id"]:
           continue
-        cm_low = str(cm).lower()
-        if any(kw in cm_low for kw in keywords):
-          best_match = None
-          for cs in cols_s:
-            if cs in ["unified_id", "clean_id"] or cs in used_s:
-              continue
-            cs_low = str(cs).lower()
-            if any(kw in cs_low for kw in keywords):
-              best_match = cs
+        # مقارنة الأسماء بعد تنظيفها من الفراغات
+        if str(col_m).strip() == str(col_s).strip():
+          common_columns.append((col_m, col_s))
+          break
+
+    # إذا وُجدت أعمدة مطابقة بالاسم تماماً، نستخدمها؛ وإلا نربط كل الأعمدة المتشابهة
+    pairs = common_columns if common_columns else []
+    if not pairs:
+      for cm in df_m.columns:
+        if cm not in ["unified_id", "clean_id"]:
+          for cs in df_s.columns:
+            if cs not in ["unified_id", "clean_id"]:
+              pairs.append((cm, cs))
               break
-          if not best_match:
-            if cm in cols_s and cm not in used_s:
-              best_match = cm
-          if best_match:
-            used_s.add(best_match)
-            matched_pairs.append((cm, best_match))
-      return matched_pairs
-
-
-    phone_keywords = ["هاتف", "رقم", "phone", "jawwal", "موبايل", "mobile"]
-    city_keywords = ["مدين", "city", "محافظ", "منطق", "area", "province"]
-    address_keywords = [
-        "عنوان",
-        "address",
-        "سكن",
-        "استلام",
-        "شارع",
-        "location",
-        "البطاقة",
-        "تفاصيل",
-    ]
-
-    phone_pairs = find_matching_cols(df_m.columns, df_s.columns, phone_keywords)
-    city_pairs = find_matching_cols(df_m.columns, df_s.columns, city_keywords)
-    address_pairs = find_matching_cols(
-        df_m.columns, df_s.columns, address_keywords
-    )
-
-    # ضمان ربط جميع الأعمدة النصية الأخرى لضمان عدم تفويت أي عمود عنوان أو ملاحظات
-    assigned_m = {p[0] for p in phone_pairs + city_pairs + address_pairs}
-    assigned_s = {p[1] for p in phone_pairs + city_pairs + address_pairs}
-
-    for cm in df_m.columns:
-      if cm not in ["unified_id", "clean_id"] and cm not in assigned_m:
-        for cs in df_s.columns:
-          if cs not in ["unified_id", "clean_id"] and cs not in assigned_s:
-            address_pairs.append((cm, cs))
-            assigned_s.add(cs)
-            break
-
 
     def clean_val(series, is_phone=False):
       if series is None:
@@ -302,13 +255,12 @@ if df_main is not None and active_sub is not None:
       return s
 
 
-    for cm, cs in phone_pairs:
-      df_m[f"cl_{cm}"] = clean_val(df_m[cm], is_phone=True)
-      df_s[f"cl_{cs}"] = clean_val(df_s[cs], is_phone=True)
-
-    for cm, cs in city_pairs + address_pairs:
-      df_m[f"cl_{cm}"] = clean_val(df_m[cm], is_phone=False)
-      df_s[f"cl_{cs}"] = clean_val(df_s[cs], is_phone=False)
+    for cm, cs in pairs:
+      is_ph = any(
+          kw in str(cm).lower() for kw in ["هاتف", "رقم", "phone", "jawwal"]
+      )
+      df_m[f"cl_{cm}"] = clean_val(df_m[cm], is_phone=is_ph)
+      df_s[f"cl_{cs}"] = clean_val(df_s[cs], is_phone=is_ph)
 
     merged = pd.merge(
         df_m,
@@ -331,19 +283,28 @@ if df_main is not None and active_sub is not None:
 
       if merge_status == "both":
         has_p_diff, has_ci_diff, has_a_diff = False, False, False
+        diff_labels = []
 
-        for cm, cs in phone_pairs:
-          if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
-            has_p_diff = True
-        for cm, cs in city_pairs:
-          if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
-            has_ci_diff = True
-        for cm, cs in address_pairs:
-          # مقارنة صارمة للأعمدة النصية والعنوان للكشف عن أي تغيير مثل عمارة خليل آغا وغيرها
+        for cm, cs in pairs:
           val_m = str(row.get(f"cl_{cm}_x", "")).strip()
           val_s = str(row.get(f"cl_{cs}_y", "")).strip()
+
           if val_m != val_s:
-            has_a_diff = True
+            col_lower = str(cm).lower()
+            if any(
+                w in col_lower for w in ["هاتف", "رقم", "phone", "jawwal"]
+            ):
+              has_p_diff = True
+              if "هاتف" not in diff_labels:
+                diff_labels.append("هاتف")
+            elif any(w in col_lower for w in ["مدين", "city", "محافظ"]):
+              has_ci_diff = True
+              if "مدينة" not in diff_labels:
+                diff_labels.append("مدينة")
+            else:
+              has_a_diff = True
+              if "عنوان" not in diff_labels:
+                diff_labels.append("عنوان")
 
         if has_p_diff or has_ci_diff or has_a_diff:
           if has_p_diff:
@@ -353,22 +314,8 @@ if df_main is not None and active_sub is not None:
           if has_a_diff:
             address_diff_count += 1
 
-          diff_labels = []
-          if has_p_diff:
-            diff_labels.append("هاتف")
-          if has_ci_diff:
-            diff_labels.append("مدينة")
-          if has_a_diff:
-            diff_labels.append("عنوان")
-
           record = {"الكود": idx}
-          for cm, cs in phone_pairs:
-            record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
-            record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
-          for cm, cs in city_pairs:
-            record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
-            record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
-          for cm, cs in address_pairs:
+          for cm, cs in pairs:
             record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
             record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
 
@@ -378,7 +325,7 @@ if df_main is not None and active_sub is not None:
       elif merge_status == "left_only":
         code_diff_count += 1
         record = {"الكود": idx}
-        for cm, cs in phone_pairs + city_pairs + address_pairs:
+        for cm, cs in pairs:
           record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
           record[f"{cs} (المقارنة - الفرعي)"] = "غير موجود"
         record["الحالة"] = "موجود في أطلس فقط"
@@ -387,7 +334,7 @@ if df_main is not None and active_sub is not None:
       elif merge_status == "right_only":
         code_diff_count += 1
         record = {"الكود": idx}
-        for cm, cs in phone_pairs + city_pairs + address_pairs:
+        for cm, cs in pairs:
           record[f"{cm} (الرئيسي - أطلس)"] = "غير موجود"
           record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
         record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
@@ -410,7 +357,7 @@ if df_main is not None and active_sub is not None:
     st.sidebar.markdown("### 🔍 تقرير فحص الأعمدة المكتشفة")
     st.sidebar.write(f"**كود أطلس:** `{code_col_m}`")
     st.sidebar.write(f"**كود الفرعي:** `{code_col_s}`")
-    st.sidebar.write(f"**إجمالي الأعمدة المقارنة:** {len(address_pairs)}")
+    st.sidebar.write(f"**إجمالي الأعمدة المقارنة:** {len(pairs)}")
 
   except Exception as e:
     st.error(f"حدث خطأ أثناء معالجة الملفات: {e}")
@@ -573,12 +520,13 @@ if not diff_df.empty:
           ):
             cell_style += " background-color: #dbeafe !important; color: #1d4ed8; font-weight: bold;"
         else:
-          if any(w in col_name for w in ["هاتف", "رقم", "phone"]):
+          col_low = col_name.lower()
+          if any(w in col_low for w in ["هاتف", "رقم", "phone"]):
             cell_style += " background-color: #ffedd5 !important; color: #c2410c;"
-          elif any(w in col_name for w in ["مدين", "city", "محافظ"]):
+          elif any(w in col_low for w in ["مدين", "city", "محافظ"]):
             cell_style += " background-color: #dcfce7 !important; color: #15803d;"
           elif any(
-              w in col_name for w in ["عنوان", "address", "سكن", "استلام", "شارع"]
+              w in col_low for w in ["عنوان", "address", "سكن", "استلام", "شارع"]
           ):
             cell_style += " background-color: #fef9c3 !important; color: #a16207;"
 
