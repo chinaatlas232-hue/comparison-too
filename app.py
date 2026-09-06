@@ -176,16 +176,31 @@ if active_main and df_new is not None:
       code_col = common_cols[0]
 
 
-    def clean_series(series):
+    def clean_series(series, is_phone=False):
       if series is None:
         return pd.Series([""] * len(series))
-      return (
+
+      s = (
           series.astype(str)
           .str.replace(r"\.0$", "", regex=True)
           .str.strip()
           .fillna("")
-          .replace(["nan", "None", "NAT", "nan"], "")
       )
+
+      # استبدال القيم الفارغة الشائعة لتصبح نصاً فارغاً موحداً
+      s = s.replace(["nan", "None", "NAT", "nat", "None", ""], "")
+
+      if is_phone:
+        # إزالة كافة المسافات والرموز الزائدة في أرقام الهواتف للمقارنة السليمة
+        s = s.str.replace(r"\D", "", regex=True)
+        # توحيد أرقام الهواتف العراقية أو الدولية إذا بدأت بـ 964 أو 00964
+        s = s.str.sub(r"^00", "", regex=True)
+
+      else:
+        # توحيد المسافات المتعددة في النصوص (العنوان والمدينة) لتجنب الفروقات الوهمية
+        s = s.str.replace(r"\s+", " ", regex=True).str.strip()
+
+      return s
 
 
     df_m = df_main.copy()
@@ -230,9 +245,13 @@ if active_main and df_new is not None:
         or "استلام" in str(c)
     ]
 
-    for c in phone_cols + city_cols + address_cols:
-      df_m[f"cl_{c}"] = clean_series(df_m[c])
-      df_n[f"cl_{c}"] = clean_series(df_n[c])
+    for c in phone_cols:
+      df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=True)
+      df_n[f"cl_{c}"] = clean_series(df_n[c], is_phone=True)
+
+    for c in city_cols + address_cols:
+      df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=False)
+      df_n[f"cl_{c}"] = clean_series(df_n[c], is_phone=False)
 
     merged = pd.merge(
         df_m,
