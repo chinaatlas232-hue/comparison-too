@@ -199,7 +199,6 @@ if df_main is not None and active_sub is not None:
         s = s.str.replace(r"\D", "", regex=True)
         s = s.str.replace(r"^00", "", regex=True)
       else:
-        # تنظيف مع توحيد المسافات لضمان رصد أي اختلاف دقيق في النص أو الحركات
         s = (
             s.str.replace(r"\s+", " ", regex=True)
             .str.strip()
@@ -240,45 +239,53 @@ if df_main is not None and active_sub is not None:
     df_m = df_m.drop_duplicates(subset=["clean_id"], keep="last")
     df_s = df_s.drop_duplicates(subset=["clean_id"], keep="last")
 
-    common_cols = [
-        c
-        for c in set(df_m.columns).intersection(set(df_s.columns))
-        if c not in ["unified_id", "clean_id"]
-    ]
 
-    phone_cols = [
-        c
-        for c in common_cols
-        if any(
-            k in str(c).lower() for k in ["هاتف", "رقم", "phone", "jawwal", "موبايل"]
-        )
-    ]
-    city_cols = [
-        c
-        for c in common_cols
-        if any(
-            k in str(c).lower()
-            for k in ["مدين", "city", "محافظ", "منطق", "area"]
-        )
-    ]
-    address_cols = [
-        c
-        for c in common_cols
-        if any(
-            k in str(c).lower()
-            for k in ["عنوان", "address", "سكن", "استلام", "شارع"]
-        )
-    ]
+    # دالة مطابقة ذكية للأعمدة بناءً على الكلمات المفتاحية بغض النظر عن اختلاف التسمية الحرفية
+    def find_matching_cols(cols_m, cols_s, keywords):
+      matched_pairs = []
+      used_s = set()
+      for cm in cols_m:
+        if cm in ["unified_id", "clean_id"]:
+          continue
+        cm_low = str(cm).lower()
+        if any(kw in cm_low for kw in keywords):
+          # ابحث عن عمود يقابله في الفرعي
+          best_match = None
+          for cs in cols_s:
+            if cs in ["unified_id", "clean_id"] or cs in used_s:
+              continue
+            cs_low = str(cs).lower()
+            if any(kw in cs_low for kw in keywords):
+              best_match = cs
+              break
+          if not best_match:
+            # إذا لم يوجد عمود بنفس الكلمة المفتاحية بالفرعي، خذ نفس اسم العمود إذا وجد أو أول عمود متاح
+            if cm in cols_s and cm not in used_s:
+              best_match = cm
+          if best_match:
+            used_s.add(best_match)
+            matched_pairs.append((cm, best_match))
+      return matched_pairs
 
-    for c in phone_cols:
-      df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=True)
-      df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=True)
 
-    for c in city_cols + address_cols + [
-        col for col in common_cols if col not in phone_cols + city_cols + address_cols
-    ]:
-      df_m[f"cl_{c}"] = clean_series(df_m[c], is_phone=False)
-      df_s[f"cl_{c}"] = clean_series(df_s[c], is_phone=False)
+    phone_keywords = ["هاتف", "رقم", "phone", "jawwal", "موبايل"]
+    city_keywords = ["مدين", "city", "محافظ", "منطق", "area"]
+    address_keywords = ["عنوان", "address", "سكن", "استلام", "شارع"]
+
+    phone_pairs = find_matching_cols(df_m.columns, df_s.columns, phone_keywords)
+    city_pairs = find_matching_cols(df_m.columns, df_s.columns, city_keywords)
+    address_pairs = find_matching_cols(
+        df_m.columns, df_s.columns, address_keywords
+    )
+
+    # تجهيز الأعمدة النظيفة للمقارنة
+    for cm, cs in phone_pairs:
+      df_m[f"cl_{cm}"] = clean_series(df_m[cm], is_phone=True)
+      df_s[f"cl_{cs}"] = clean_series(df_s[cs], is_phone=True)
+
+    for cm, cs in city_pairs + address_pairs:
+      df_m[f"cl_{cm}"] = clean_series(df_m[cm], is_phone=False)
+      df_s[f"cl_{cs}"] = clean_series(df_s[cs], is_phone=False)
 
     merged = pd.merge(
         df_m,
@@ -302,15 +309,14 @@ if df_main is not None and active_sub is not None:
       if merge_status == "both":
         has_p_diff, has_ci_diff, has_a_diff = False, False, False
 
-        for pc in phone_cols:
-          if row.get(f"cl_{pc}_m", "") != row.get(f"cl_{pc}_s", ""):
+        for cm, cs in phone_pairs:
+          if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
             has_p_diff = True
-        for cic in city_cols:
-          if row.get(f"cl_{cic}_m", "") != row.get(f"cl_{cic}_s", ""):
+        for cm, cs in city_pairs:
+          if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
             has_ci_diff = True
-        for ac in address_cols:
-          # مقارنة دقيقة وحرفية لعمود العنوان لرصد أي اختلاف بالنص أو الحركات أو المسافات
-          if row.get(f"cl_{ac}_m", "") != row.get(f"cl_{ac}_s", ""):
+        for cm, cs in address_pairs:
+          if row.get(f"cl_{cm}_x", "") != row.get(f"cl_{cs}_y", ""):
             has_a_diff = True
 
         if has_p_diff or has_ci_diff or has_a_diff:
@@ -330,15 +336,15 @@ if df_main is not None and active_sub is not None:
             diff_labels.append("عنوان")
 
           record = {"الكود": idx}
-          for pc in phone_cols:
-            record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
-            record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
-          for cic in city_cols:
-            record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
-            record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
-          for ac in address_cols:
-            record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
-            record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
+          for cm, cs in phone_pairs:
+            record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
+            record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
+          for cm, cs in city_pairs:
+            record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
+            record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
+          for cm, cs in address_pairs:
+            record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
+            record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
 
           record["الحالة"] = "اختلاف " + " و ".join(diff_labels)
           diff_records.append(record)
@@ -346,30 +352,18 @@ if df_main is not None and active_sub is not None:
       elif merge_status == "left_only":
         code_diff_count += 1
         record = {"الكود": idx}
-        for pc in phone_cols:
-          record[f"{pc} (الرئيسي - أطلس)"] = row.get(f"{pc}_m", "")
-          record[f"{pc} (المقارنة - الفرعي)"] = "غير موجود"
-        for cic in city_cols:
-          record[f"{cic} (الرئيسي - أطلس)"] = row.get(f"{cic}_m", "")
-          record[f"{cic} (المقارنة - الفرعي)"] = "غير موجود"
-        for ac in address_cols:
-          record[f"{ac} (الرئيسي - أطلس)"] = row.get(f"{ac}_m", "")
-          record[f"{ac} (المقارنة - الفرعي)"] = "غير موجود"
+        for cm, cs in phone_pairs + city_pairs + address_pairs:
+          record[f"{cm} (الرئيسي - أطلس)"] = row.get(f"{cm}_x", "")
+          record[f"{cs} (المقارنة - الفرعي)"] = "غير موجود"
         record["الحالة"] = "موجود في أطلس فقط"
         diff_records.append(record)
 
       elif merge_status == "right_only":
         code_diff_count += 1
         record = {"الكود": idx}
-        for pc in phone_cols:
-          record[f"{pc} (الرئيسي - أطلس)"] = "غير موجود"
-          record[f"{pc} (المقارنة - الفرعي)"] = row.get(f"{pc}_s", "")
-        for cic in city_cols:
-          record[f"{cic} (الرئيسي - أطلس)"] = "غير موجود"
-          record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
-        for ac in address_cols:
-          record[f"{ac} (الرئيسي - أطلس)"] = "غير موجود"
-          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
+        for cm, cs in phone_pairs + city_pairs + address_pairs:
+          record[f"{cm} (الرئيسي - أطلس)"] = "غير موجود"
+          record[f"{cs} (المقارنة - الفرعي)"] = row.get(f"{cs}_y", "")
         record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
         diff_records.append(record)
 
