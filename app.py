@@ -327,7 +327,7 @@ if df_main is not None and active_sub is not None:
           record[f"{cic} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
         for ac in address_cols:
           record[f"{ac} (الرئيسي - أطلس)"] = "غير موجود"
-          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{cic}_s", "")
+          record[f"{ac} (المقارنة - الفرعي)"] = row.get(f"{ac}_s", "")
         record["الحالة"] = "موجود في الملف الفرعي فقط (غير موجود بأطلس)"
         diff_records.append(record)
 
@@ -544,7 +544,18 @@ if not diff_df.empty:
     )
 
     final_table = f"""
-        <table style="width: 100%; border-collapse: collapse; direction: rtl; font-family: sans-serif;">
+        <style>
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
+            font-family: sans-serif;
+        }}
+        th, td {{
+            border: 1px solid #d1d5db;
+        }}
+        </style>
+        <table>
             <thead><tr>{headers_html}</tr></thead>
             <tbody>{rows_html}</tbody>
         </table>
